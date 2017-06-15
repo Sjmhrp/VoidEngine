@@ -1,0 +1,33 @@
+apply plugin: 'java-library'
+
+repositories {
+    maven {
+        url './dependencies/'
+    }
+	jcenter()
+}
+
+configurations {
+    extraLibs
+}
+
+dependencies {
+	extraLibs group: 'org.l33tlabs.twl', name: 'pngdecoder', version: '1.0'
+	extraLibs group: 'org.lwjgl.lwjgl', name: 'lwjgl', version: '2.9.3'
+	extraLibs group: 'org.lwjgl.lwjgl', name: 'lwjgl_util', version: '2.9.3'
+	extraLibs group: 'org.slick', name: 'slick_util', version: '1.0'
+	configurations.compile.extendsFrom(configurations.extraLibs)
+}
+
+jar {
+    from {
+            configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+        }
+	from("src/main/java"){include "/**/*.glsl"}
+	manifest {
+		attributes(
+		'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+		'Main-Class': 'sjmhrp.core.Launcher'
+		)
+	}
+}
