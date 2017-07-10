@@ -38,7 +38,6 @@ The compiled jar is located in build/libs
 Or download a compiled jar from [here](https://github.com/Sjmhrp/VoidEngine/releases)
   
 ## Upcoming Features
-* Procedurally generated clouds using Perlin Noise
 * Shadows
 * Better Stabilization for joints
 * A GUI (and pause menu)
