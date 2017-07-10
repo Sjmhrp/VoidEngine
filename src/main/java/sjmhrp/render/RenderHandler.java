@@ -14,9 +14,7 @@ import static org.lwjgl.opengl.GL11.GL_GEQUAL;
 import static org.lwjgl.opengl.GL11.GL_KEEP;
 import static org.lwjgl.opengl.GL11.GL_LEQUAL;
 import static org.lwjgl.opengl.GL11.GL_ONE;
-import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_REPLACE;
-import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_STENCIL_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
@@ -69,14 +67,13 @@ import sjmhrp.post.Fbo;
 import sjmhrp.post.GBufferShader;
 import sjmhrp.post.Post;
 import sjmhrp.shaders.Shader;
-import sjmhrp.sky.SkyShader;
-import sjmhrp.sky.Sun;
-import sjmhrp.sky.SunShader;
+import sjmhrp.sky.CelestialBody;
+import sjmhrp.sky.SkyDome;
+import sjmhrp.sky.SkyRenderer;
 import sjmhrp.terrain.Terrain;
 import sjmhrp.terrain.TerrainShader;
 import sjmhrp.textures.ModelTexture;
 import sjmhrp.textures.TerrainTexture;
-import sjmhrp.textures.TexturePool;
 import sjmhrp.utils.MatrixUtils;
 import sjmhrp.utils.Profiler;
 import sjmhrp.view.Camera;
@@ -131,15 +128,18 @@ public class RenderHandler {
 		gBuffer.resolveDepth(Post.main);
 		Post.main.bindFrameBuffer();
 		renderScene(shader.getGBufferShader());
-		renderSkyDome(world,camera,shader.getSkyShader());
-		if(world.hasSun())renderSun(world,camera,shader.getSunShader());
+		if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera,shader);
 		if(Globals.debug)DebugRenderer.render(shader,world,camera);
 		Post.main.unbindFrameBuffer();
 		Post.clear();
 		Post.addToPipeline(shader.getContrastShader());
 		if(PhysicsEngine.paused){
+			shader.getTintShader().start();
+			shader.getTintShader().loadTint(new Vector3d(),0.7);
+			shader.getTintShader().stop();
 			Post.addToPipeline(shader.getHBlurShader());
 			Post.addToPipeline(shader.getVBlurShader());
+			Post.addToPipeline(shader.getTintShader());
 		}
 		Post.display(Post.main);
 		Display.sync(60);
@@ -163,71 +163,33 @@ public class RenderHandler {
 		s.start();
 		glDepthMask(false);
 		glDisable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),Post.SSAO2.getColourTexture());
-		glDisable(GL_BLEND);
+		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),Post.SSAO2.getColourTexture(),Post.albedo.getDepthTexture());
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(true);
 		s.stop();
 	}
-
-	static void renderSkyDome(World w, Camera c, SkyShader s) {
-		s.start();
-		glDepthMask(false);
-		RawModel m = ModelPool.getModel("SkyDome");
-		GL30.glBindVertexArray(m.getVaoId());
-		GL20.glEnableVertexAttribArray(0);
-		GL20.glEnableVertexAttribArray(1);
-		GL20.glEnableVertexAttribArray(2);
-		s.loadSize(w.getSkyDomeSize());
-		s.loadViewMatrix(c.getRotMatrix());
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D,TexturePool.getTexture("map/clouds1").getAlbedoID());
-		glDrawElements(GL_TRIANGLES,m.getVertexCount(),GL_UNSIGNED_INT, 0);
-		Profiler.drawCalls++;
-		glDepthMask(true);
-		s.stop();
-	}
 	
-	static void renderSun(World w, Camera c, SunShader s) {
-		s.start();
-		glDepthMask(false);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		GL30.glBindVertexArray(ModelPool.getModel("quad").getVaoId());
-		GL20.glEnableVertexAttribArray(0);
-		Sun sun = w.getSun();
-		s.loadTransformMatrix(MatrixUtils.createTransform(sun.getPosition(),sun.getOrientation(),sun.getSize()));
-		s.loadViewMatrix(c.getRotMatrix());
-		glDrawArrays(GL_TRIANGLE_STRIP,0,4);
-		Profiler.drawCalls++;
-		GL20.glDisableVertexAttribArray(0);
-		GL30.glBindVertexArray(0);
-		glDisable(GL_BLEND);
-		glDepthMask(true);
-		s.stop();
-	}
-	
-	static void doLighting(World w,  Camera c, Shader s) {
+	static void doLighting(World w, Camera c, Shader s) {
 		gBuffer.resolveDepth(Post.light);
 		Post.light.bindFrameBuffer();
 		glClear(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE,GL_ONE);
 		glDepthMask(false);
-		if(w.hasSun())renderSunLight(w,s.getSunLightShader(),c);
+		if(w.hasSky()&&w.getSky().getBodies().size()>0)renderSunLight(w.getSky(),s.getSunLightShader(),c);
 		renderLights(s.getLightShader(),c);
 		glDepthMask(true);
 		glDisable(GL_BLEND);
 		Post.light.unbindFrameBuffer();
 	}
 
-	static void renderSunLight(World w, SunLightShader s, Camera c) {
+	static void renderSunLight(SkyDome sky, SunLightShader s, Camera c) {
 		s.start();
 		s.loadViewMatrix(c.getRotMatrix());
-		s.load(w.getSun());
-		renderQuad(Post.albedo.getColourTexture(),Post.normal.getColourTexture(),Post.albedo.getDepthTexture());
+		for(CelestialBody b : sky.getBodies()) {
+			s.load(b);
+			renderQuad(Post.albedo.getColourTexture(),Post.normal.getColourTexture(),Post.albedo.getDepthTexture());
+		}
 		s.stop();
 	}
 	

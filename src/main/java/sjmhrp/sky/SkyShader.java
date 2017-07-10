@@ -9,8 +9,11 @@ public class SkyShader extends ShaderProgram {
 	private static final String FRAGMENT_SHADER = "/sjmhrp/sky/SkyFragmentShader.glsl";
 
 	private int location_viewMatrix;
-	private int location_size;
-
+	private int location_domeSize;
+	private int location_glow;
+	private int location_colour;
+	private int location_sunPosition;
+	
 	public SkyShader() {
 		super(VERTEX_SHADER,FRAGMENT_SHADER);
 	}
@@ -26,14 +29,23 @@ public class SkyShader extends ShaderProgram {
 	protected void getAllUniformLocations() {
 		location_projectionMatrix = getUniformLocation("projectionMatrix");
 		location_viewMatrix = getUniformLocation("viewMatrix");
-		location_size = getUniformLocation("size");
+		location_domeSize = getUniformLocation("domeSize");
+		location_glow = getUniformLocation("glow");
+		location_colour = getUniformLocation("colour");
+		location_sunPosition = getUniformLocation("sunPosition");
 	}
 
-	public void loadSize(double size) {
-		loadFloat(location_size,size);
-	}
-	
 	public void loadViewMatrix(Matrix4d matrix) {
 		loadMatrix(location_viewMatrix, matrix);
+	}
+	
+	public void load(SkyDome sky) {
+		loadFloat(location_domeSize,sky.getSize());
+		load3Vector(location_sunPosition,sky.getSun().getPosition());
+	}
+	
+	public void connectTextures() {
+		loadInt(location_glow,0);
+		loadInt(location_colour,1);
 	}
 }

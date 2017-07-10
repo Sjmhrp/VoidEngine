@@ -22,7 +22,7 @@ void main(void){
 	float z = texture(depth,vTexturePos).r*2-1;
 	vec4 projPos = vec4(vTexturePos*2-1,z,1.0);
 	projPos = projMatrix*projPos;
-	vec3 pos = projPos.rgb/projPos.w;
+	vec3 pos = projPos.xyz/projPos.w;
 	vec4 worldPos = inverse(viewMatrix) * vec4(pos,1.0);
 	vec3 toCamera = (inverse(viewMatrix) * vec4(0.0,0.0,0.0,1.0)).xyz - worldPos.xyz;
 	vec3 light = normalize(position);

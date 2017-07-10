@@ -160,7 +160,7 @@ public abstract class ShaderProgram {
 		return shaderID;
 	}
 	
-	public void loadProjectionMatrix(Matrix4d matrix4f) {
-		loadMatrix(location_projectionMatrix, matrix4f);
+	public void loadProjectionMatrix(Matrix4d matrix) {
+		loadMatrix(location_projectionMatrix,matrix);
 	}
 }

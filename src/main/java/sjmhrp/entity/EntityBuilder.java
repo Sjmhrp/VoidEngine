@@ -2,8 +2,9 @@ package sjmhrp.entity;
 
 import java.util.ArrayList;
 
-import sjmhrp.io.IOHandler;
+import sjmhrp.io.OBJHandler;
 import sjmhrp.linear.Transform;
+import sjmhrp.linear.Vector3d;
 import sjmhrp.models.ModelPool;
 import sjmhrp.models.TexturedModel;
 import sjmhrp.physics.dynamics.RigidBody;
@@ -14,6 +15,14 @@ import sjmhrp.textures.TexturePool;
 
 public class EntityBuilder {
 
+	public static TexturedModel newColouredModel(String obj, String colour) {
+		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getColour(colour));
+	}
+	
+	public static TexturedModel newColouredModel(String obj, Vector3d colour) {
+		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getColour(colour));
+	}
+	
 	public static TexturedModel newModel(String obj, String texture) {
 		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getTexture(texture));
 	}
@@ -27,9 +36,25 @@ public class EntityBuilder {
 	}
 
 	public static RigidBody newStaticTriMesh(String mesh, Transform t) {
-		return new RigidBody(t,0,IOHandler.parseCollisionMesh(mesh,t));
+		return new RigidBody(t,0,OBJHandler.parseCollisionMesh(mesh,t));
 	}
 
+	public static Entity createColourEntity(RigidBody b, String colour) {
+		return createEntity(b,TexturePool.getColour(colour));
+	}
+	
+	public static Entity createColourEntity(RigidBody b, Vector3d colour) {
+		return createEntity(b,TexturePool.getColour(colour));
+	}
+	
+	public static Entity createColourEntity(RigidBody b, String model, String colour) {
+		return createEntity(b,model,TexturePool.getColour(colour));
+	}
+	
+	public static Entity createColourEntity(RigidBody b, String model, Vector3d colour) {
+		return createEntity(b,model,TexturePool.getColour(colour));
+	}
+	
 	public static Entity createEntity(RigidBody b, String texture) {
 		return createEntity(b,TexturePool.getTexture(texture));
 	}

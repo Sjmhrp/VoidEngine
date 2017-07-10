@@ -17,8 +17,8 @@ public class AABBShader extends ShaderProgram{
 
 	@Override
 	protected void bind() {
-		bindAttribute(0, "position");
-		bindAttribute(1, "radius");
+		bindAttribute(0,"position");
+		bindAttribute(1,"radius");
 	}
 
 	@Override

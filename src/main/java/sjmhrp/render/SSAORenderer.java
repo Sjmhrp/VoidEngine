@@ -47,7 +47,7 @@ public class SSAORenderer {
 		noise.flip();
 		ssaoNoise = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, ssaoNoise);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL30.GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, (FloatBuffer) noise);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL30.GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, noise);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

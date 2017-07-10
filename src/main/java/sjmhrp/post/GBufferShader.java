@@ -10,7 +10,7 @@ public class GBufferShader extends ShaderProgram {
 	private int location_albedo;
 	private int location_light;
 	private int location_ssao;
-	private int location_shadow;
+	private int location_depth;
 	
 	public GBufferShader() {
 		super(VERTEX_FILE, FRAGMENT_FILE);
@@ -21,7 +21,7 @@ public class GBufferShader extends ShaderProgram {
 		location_albedo = getUniformLocation("albedo");
 		location_light = getUniformLocation("light");
 		location_ssao = getUniformLocation("ssao");
-		location_shadow = getUniformLocation("shadow");
+		location_depth = getUniformLocation("depth");
 	}
 
 	@Override
@@ -33,6 +33,6 @@ public class GBufferShader extends ShaderProgram {
 		loadInt(location_albedo,0);
 		loadInt(location_light,1);
 		loadInt(location_ssao,2);
-		loadInt(location_shadow,3);
+		loadInt(location_depth,3);
 	}
 }

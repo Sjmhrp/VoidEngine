@@ -5,14 +5,13 @@ in vec2 texturePos;
 in vec3 normal;
 
 out vec3 vPosition;
-out vec2 vTexturePos;
 
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
-uniform float size;
+uniform float domeSize;
 
 void main(void) {
-	gl_Position = projectionMatrix * viewMatrix * vec4(size*position,1);
-	vTexturePos = vec2(-texturePos.y,texturePos.x);
-	vPosition = position;
+	vec3 pos = normalize(position);
+	gl_Position = projectionMatrix * viewMatrix * vec4(domeSize*pos,1);
+	vPosition = pos;
 }

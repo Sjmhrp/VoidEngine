@@ -2,7 +2,7 @@ package sjmhrp.light;
 
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.shaders.ShaderProgram;
-import sjmhrp.sky.Sun;
+import sjmhrp.sky.CelestialBody;
 
 public class SunLightShader extends ShaderProgram {
 
@@ -40,9 +40,9 @@ public class SunLightShader extends ShaderProgram {
 		loadMatrix(location_viewMatrix,matrix);
 	}
 	
-	public void load(Sun sun) {
-		load3Vector(location_pos,sun.getPosition());
-		load3Vector(location_colour,sun.getColour());
+	public void load(CelestialBody body) {
+		load3Vector(location_pos,body.getPosition());
+		load3Vector(location_colour,body.getColour());
 	}
 	
 	public void connectTextures() {

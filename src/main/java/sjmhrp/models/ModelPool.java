@@ -2,7 +2,7 @@ package sjmhrp.models;
 
 import java.util.HashMap;
 
-import sjmhrp.io.IOHandler;
+import sjmhrp.io.OBJHandler;
 import sjmhrp.render.Loader;
 
 public class ModelPool {
@@ -10,13 +10,13 @@ public class ModelPool {
 	
 	public static void init() {
 		pool.put("quad",Loader.load(new double[] {-1,1,-1,-1,1,1,1,-1},2));
-		pool.put("pointLight",IOHandler.parseOBJ("pointLight"));
+		pool.put("pointLight",OBJHandler.parseOBJ("pointLight"));
 	}
 
 	public static RawModel getModel(String name) {
 		RawModel m = pool.get(name);
 		if(m!=null)return m;
-		m = IOHandler.parseOBJ(name);
+		m = OBJHandler.parseOBJ(name);
 		pool.put(name,m);
 		return m;
 	}

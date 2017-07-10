@@ -45,16 +45,15 @@ public class DebugRenderer {
 	
 	static ArrayList<Entity> contacts = new ArrayList<Entity>();
 	static TexturedModel sphere;
-	static int pointer;
 	static int vao;
 	static int vbo;
 	
 	public static void init() {
 		vao = Loader.createVao();
 		vbo = Loader.createEmptyVBO(MAX_INSTANCES*DATA_LENGTH);
-		Loader.addInstancedAttrib(vao, vbo, 0, 4, DATA_LENGTH, 0);
-		Loader.addInstancedAttrib(vao, vbo, 1, 4, DATA_LENGTH, 3);
-		sphere = EntityBuilder.newModel("SPHERE","red");
+		Loader.addInstancedAttrib(vao,vbo,0,4,DATA_LENGTH,0);
+		Loader.addInstancedAttrib(vao,vbo,1,4,DATA_LENGTH,3);
+		sphere = EntityBuilder.newColouredModel("SPHERE","red");
 	}
 
 	public static void clearContacts() {
@@ -80,7 +79,7 @@ public class DebugRenderer {
 	}
 
 	public static void render(Shader shader, World world, Camera camera) {
-		renderAABB(shader,world,camera);
+		renderAABB(shader.getAabbShader(),world,camera);
 		renderContacts(shader.getEntityShader(),camera);
 	}
 
@@ -110,15 +109,15 @@ public class DebugRenderer {
 		s.stop();
 	}
 
-	static void renderAABB(Shader s, World w, Camera c) {
-		s.getAabbShader().start();
-		s.getAabbShader().loadViewMatrix(c.getViewMatrix());
+	static void renderAABB(AABBShader s, World w, Camera c) {
+		s.start();
+		s.loadViewMatrix(c.getViewMatrix());
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		RenderHandler.disableCulling();
 		GL30.glBindVertexArray(vao);
 		GL20.glEnableVertexAttribArray(0);
 		GL20.glEnableVertexAttribArray(1);
-		pointer = 0;
+		int pointer = 0;
 		int count = 0;
 		float[] data = new float[MAX_INSTANCES*DATA_LENGTH];
 		for(RigidBody b : w.getRigidBodies()) {
@@ -148,12 +147,12 @@ public class DebugRenderer {
 				count++;
 			}
 		}
-		Loader.updateVbo(vbo, data, buffer);
+		Loader.updateVbo(vbo,data,buffer);
 		GL31.glDrawArraysInstanced(GL11.GL_POINTS,0,1,count);
 		Profiler.drawCalls++;
 		RenderHandler.unbind();
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		RenderHandler.enableCulling();
-		s.getAabbShader().stop();
+		s.stop();
 	}
 }

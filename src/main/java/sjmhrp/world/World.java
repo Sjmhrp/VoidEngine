@@ -7,7 +7,7 @@ import java.util.Random;
 
 import sjmhrp.core.Globals;
 import sjmhrp.debug.DebugRenderer;
-import sjmhrp.linear.Quaternion;
+import sjmhrp.io.StarHandler;
 import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
@@ -20,6 +20,7 @@ import sjmhrp.physics.dynamics.CollisionBody;
 import sjmhrp.physics.dynamics.Island;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.physics.dynamics.forces.Force;
+import sjmhrp.sky.SkyDome;
 import sjmhrp.sky.Sun;
 import sjmhrp.terrain.DefaultHeightGenerator;
 import sjmhrp.terrain.PerlinNoiseGenerator;
@@ -29,8 +30,7 @@ import sjmhrp.utils.LimitedStack;
 
 public class World {
 
-	Sun sun;
-	double skyDomeSize = Sun.AU;
+	SkyDome sky;
 	
 	ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>();
 	ArrayList<RigidBody> rigidBodies = new ArrayList<RigidBody>();
@@ -42,42 +42,32 @@ public class World {
 	ArrayList<Joint> joints = new ArrayList<Joint>();
 	ArrayList<Island> islands = new ArrayList<Island>();
 
-	public int seed;
-	public int size;
 	Vector3d gravity = new Vector3d();
 
-	public World(int size, int seed) {
-		this.size = size;
-		this.seed = seed;
-		this.states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
+	public World() {
+		states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
 		PhysicsEngine.registerWorld(this);
 	}
 
-	public World(int size) {
-		this(size,new Random().nextInt(1000000000));
-	}
-
-	public void createSun() {
-		createSun(new Vector3d(0,Sun.AU,0),new Quaternion().rotate(new Vector3d(0.5*Math.PI,0,0),1));
+	public void generateSky() {
+		sky = new SkyDome();
 	}
 	
-	public void createSun(Vector3d colour) {
-		createSun(new Vector3d(0,Sun.AU,0),new Quaternion().rotate(new Vector3d(0.5*Math.PI,0,0),1),colour);
+	public void addSun() {
+		Sun sun = new Sun();
+		sun.getPosition().set(0,1,0);
+		sun.getColour().set(1,1,1);
+		sun.setSize(150);
+		sun.setDayLength(1200);
+		sun.setTexture("sun");
+		sky.addBody(sun);
 	}
 	
-	public void createSun(Vector3d pos, Quaternion orientation) {
-		sun = new Sun(pos,orientation);
+	public void generateStars() {
+		sky.addStars(StarHandler.readStars("hip2.dat"));
 	}
 	
-	public void createSun(Vector3d pos, Quaternion orientation, Vector3d colour) {
-		sun = new Sun(pos,orientation,colour);
-	}
-	
-	public void setSkyDomeSize(double size) {
-		skyDomeSize=size;
-	}
-	
-	public void generateFlatTerrain(TerrainTexture terrainTexture) {
+	public void generateFlatTerrain(int size, TerrainTexture terrainTexture) {
 		for(int i = -size; i<=size;i++) {
 			for(int j=-size;j<=size;j++) {
 				Terrain t = new Terrain(i,j,terrainTexture,new DefaultHeightGenerator());
@@ -87,7 +77,11 @@ public class World {
 		}
 	}
 
-	public void generateRandomTerrain(TerrainTexture terrainTexture) {
+	public void generateRandomTerrain(int size, TerrainTexture terrainTexture) {
+		generateRandomTerrain(size,new Random().nextInt(1000000000),terrainTexture);
+	}
+	
+	public void generateRandomTerrain(int size, int seed, TerrainTexture terrainTexture) {
 		for(int i = -size; i<=size;i++) {
 			for(int j=-size;j<=size;j++) {
 				Terrain t = new Terrain(i,j,terrainTexture,new PerlinNoiseGenerator(i,j,seed));
@@ -97,10 +91,10 @@ public class World {
 		}
 	}
 
-	public void generateTerrain(String heightmap, TerrainTexture terrainTexture) {
+	public void generateTerrain(int size, String heightmapTexture, TerrainTexture terrainTexture) {
 		for(int i = -size; i<=size;i++) {
 			for(int j=-size;j<=size;j++) {
-				new Terrain(i,j,terrainTexture,heightmap);
+				new Terrain(i,j,terrainTexture,heightmapTexture);
 			}
 		}
 	}
@@ -112,6 +106,14 @@ public class World {
 		}
 	}
 
+	public boolean hasSky() {
+		return sky!=null;
+	}
+	
+	public SkyDome getSky() {
+		return sky;
+	}
+	
 	public Vector3d getGravity() {
 		return gravity;
 	}
@@ -126,18 +128,6 @@ public class World {
 
 	public ArrayList<Terrain> getTerrain() {
 		return heightField;
-	}
-
-	public boolean hasSun() {
-		return sun!=null;
-	}
-	
-	public Sun getSun() {
-		return sun;
-	}
-	
-	public double getSkyDomeSize() {
-		return skyDomeSize;
 	}
 	
 	public void clear() {
@@ -190,7 +180,7 @@ public class World {
 	}
 
 	public void stepForward() {
-		sun.rotate(PhysicsEngine.getTimeStep());
+		if(hasSky())sky.tick(PhysicsEngine.getTimeStep());
 		if(Globals.debug)DebugRenderer.clearContacts();
 		states.push(new WorldState(this,PhysicsEngine.tick));
 		applyForces();
@@ -211,7 +201,7 @@ public class World {
 			State state = s.get(b);
 			if(state!=null)state.load(b);
 		}
-		s.loadSun(sun);
+		if(hasSky())s.loadSky(sky);
 	}
 
 	void applyForces() {

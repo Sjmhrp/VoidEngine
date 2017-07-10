@@ -4,7 +4,7 @@ import org.lwjgl.opengl.Display;
 
 import sjmhrp.entity.EntityBuilder;
 import sjmhrp.io.ConfigHandler;
-import sjmhrp.io.IOHandler;
+import sjmhrp.io.OBJHandler;
 import sjmhrp.light.Light;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.models.ModelPool;
@@ -26,6 +26,7 @@ import sjmhrp.render.RenderHandler;
 import sjmhrp.render.RenderRegistry;
 import sjmhrp.render.SSAORenderer;
 import sjmhrp.shaders.Shader;
+import sjmhrp.sky.SkyRenderer;
 import sjmhrp.textures.TerrainTexture;
 import sjmhrp.view.Camera;
 import sjmhrp.view.Frustum;
@@ -34,7 +35,7 @@ import sjmhrp.world.World;
 public class Main {
 
 	public static final String TITLE = "Void Engine";
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "1.0.1";
 	public static final int[] SIZE = {720,480};	
 
 	static Camera camera = new Camera(new Vector3d(375,33,461));
@@ -48,9 +49,10 @@ public class Main {
 		ModelPool.init();
 		Post.init();
 		SSAORenderer.init();
+		SkyRenderer.init();
 		new MainKeyListener();
 		shader = new Shader();
-		world = new World(0,653008806);
+		createWorld();
 		createDemoLevel();
 		loop();
 	}
@@ -58,15 +60,21 @@ public class Main {
 	public static void restart() {
 		PhysicsEngine.clear();
 		RenderRegistry.clear();
-		world = new World(0);
+		createWorld();
 		createDemoLevel();
 		loop();
 	}
 	
-	static void createDemoLevel() {
-		world.generateRandomTerrain(new TerrainTexture("grass","dirt","pinkFlowers","path","map/terrainBlendMap"));
+	static void createWorld() {
+		world = new World();
+		world.generateSky();
+		world.addSun();
+		world.generateStars();
+		world.generateRandomTerrain(0,653008806,new TerrainTexture("grass","dirt","pinkFlowers","path","map/terrainBlendMap"));
 		world.setGravity(new Vector3d(0,-ConfigHandler.getDouble("gravity"),0));
-		world.createSun();
+	}
+	
+	static void createDemoLevel() {
 		new Light(new Vector3d(400,20,410),new Vector3d(1,1,1),new Vector3d(1.1,0.0002,0.00004));
 		torus();
 		stack();
@@ -80,13 +88,13 @@ public class Main {
 	}
 	
 	static void torus() {
-		RigidBody torus = new RigidBody(new Vector3d(392,21,395),1,IOHandler.parseCompoundShape("TorusCol"));
+		RigidBody torus = new RigidBody(new Vector3d(392,21,395),1,OBJHandler.parseCompoundShape("TorusCol"));
 		RigidBody sphere = new RigidBody(new Vector3d(392,21,390),0.1,new SphereShape(0.5));
 		world.addBody(torus);
 		world.addBody(sphere);
 		sphere.setLinearVel(0,0,20);
-		EntityBuilder.createEntity(torus,"Torus","green");
-		EntityBuilder.createEntity(sphere,"blue");
+		EntityBuilder.createColourEntity(torus,"Torus","lime");
+		EntityBuilder.createColourEntity(sphere,"cyan");
 	}
 	
 	static void stack() {
@@ -94,7 +102,7 @@ public class Main {
 		for(int i = 0; i < 10; i++) {
 			RigidBody box = new RigidBody(new Vector3d(410,i*5+21,397),2,boxShape);
 			world.addBody(box);
-			EntityBuilder.createEntity(box,"green");
+			EntityBuilder.createColourEntity(box,"lime");
 		}
 	}
 	
@@ -128,18 +136,18 @@ public class Main {
 		world.addJoint(new RevoluteJoint(base,wheel4,new Vector3d(2.5,0,-2.05).add(offset),new Vector3d(0,0,1)));
 		world.addJoint(new WeldJoint(wheel1,wheel3,new Vector3d(-2.5,0,0).add(offset)));
 		world.addJoint(new WeldJoint(wheel2,wheel4,new Vector3d(2.5,0,0).add(offset)));
-		EntityBuilder.createEntity(base,"blue");
-		EntityBuilder.createEntity(wheel1,"red");
-		EntityBuilder.createEntity(wheel2,"red");
-		EntityBuilder.createEntity(wheel3,"red");
-		EntityBuilder.createEntity(wheel4,"red");
+		EntityBuilder.createColourEntity(base,"cyan");
+		EntityBuilder.createColourEntity(wheel1,"red");
+		EntityBuilder.createColourEntity(wheel2,"red");
+		EntityBuilder.createColourEntity(wheel3,"red");
+		EntityBuilder.createColourEntity(wheel4,"red");
 	}
 	
 	static void cone() {
 		RigidBody cone = new RigidBody(new Vector3d(374,15,403),1,new ConeShape(4,8));
 		cone.rotate(0,0,Math.PI);
 		world.addBody(cone);
-		EntityBuilder.createEntity(cone,"red");
+		EntityBuilder.createColourEntity(cone,"red");
 	}
 	
 	static void bounce() {
@@ -148,7 +156,7 @@ public class Main {
 			RigidBody sphere = new RigidBody(new Vector3d(375,i*4+20,368),2,sphereShape);
 			sphere.setRestitution(1);
 			world.addBody(sphere);
-			EntityBuilder.createEntity(sphere,"red");
+			EntityBuilder.createColourEntity(sphere,"red");
 		}
 	}
 
@@ -161,13 +169,13 @@ public class Main {
 		world.addBody(b3);
 		world.addJoint(new RevoluteJoint(b1,b2,new Vector3d(410,24,405.05),new Vector3d(0,0,1)).setMotor(2,500));
 		world.addJoint(new RevoluteJoint(b2,b3,new Vector3d(410,19.5,407.15),new Vector3d(0,0,1)));
-		EntityBuilder.createEntity(b1,"blue");
-		EntityBuilder.createEntity(b2,"blue");
-		EntityBuilder.createEntity(b3,"blue");
+		EntityBuilder.createColourEntity(b1,"cyan");
+		EntityBuilder.createColourEntity(b2,"cyan");
+		EntityBuilder.createColourEntity(b3,"cyan");
 	}
 
 	static void barrel() {
-		RigidBody barrel = new RigidBody(new Vector3d(410,35,404),5,new ConvexHullShape(IOHandler.parseVertices("barrel")));
+		RigidBody barrel = new RigidBody(new Vector3d(410,35,404),5,new ConvexHullShape(OBJHandler.parseVertices("barrel")));
 		world.addBody(barrel);
 		EntityBuilder.createEntity(barrel,"barrel","barrel").loadNormalMap("barrelNormal").loadSpecularMap("barrelS");
 	}
@@ -180,8 +188,8 @@ public class Main {
 			bodies[i].setFriction(0);
 			if(i==5)bodies[i].setLinearVel(-10,2,1);
 			world.addBody(bodies[i]);
-			EntityBuilder.createEntity(bodies[i],i==0?"red":i==9?"green":"blue");
 			if(i!=0)world.addJoint(new SphericalJoint(bodies[i-1],bodies[i],new Vector3d(360,2*i+21.55,420)));
+			EntityBuilder.createColourEntity(bodies[i],i==0?"red":i==9?"lime":"cyan");
 		}
 	}
 	
@@ -200,11 +208,11 @@ public class Main {
 		world.addJoint(new RevoluteJoint(b2,b3,new Vector3d(380,20.5,407.15),new Vector3d(0,0,1)));
 		world.addJoint(new RevoluteJoint(b3,b4,new Vector3d(380,11.5,409.75),new Vector3d(0,0,1)));
 		world.addJoint(new PrismaticJoint(b1,b4,new Vector3d(380,17.75,407.15),new Vector3d(0,1,0)));
-		EntityBuilder.createEntity(b1,"blue");
-		EntityBuilder.createEntity(b2,"blue");
-		EntityBuilder.createEntity(b3,"blue");
-		EntityBuilder.createEntity(b4,"green");
-		EntityBuilder.createEntity(b5,"green");
+		EntityBuilder.createColourEntity(b1,"cyan");
+		EntityBuilder.createColourEntity(b2,"cyan");
+		EntityBuilder.createColourEntity(b3,"cyan");
+		EntityBuilder.createColourEntity(b4,"lime");
+		EntityBuilder.createColourEntity(b5,"lime");
 	}
 	
 	static void loop() {

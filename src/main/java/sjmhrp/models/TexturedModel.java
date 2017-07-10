@@ -7,6 +7,10 @@ public class TexturedModel {
 	private RawModel rawModel;
 	private ModelTexture texture;
 
+	public TexturedModel(RawModel m) {
+		this(m,null);
+	}
+	
 	public TexturedModel(RawModel m, ModelTexture t) {
 		rawModel = m;
 		texture = t;
@@ -16,6 +20,10 @@ public class TexturedModel {
 		return rawModel;
 	}
 
+	public void setTexture(ModelTexture texture) {
+		this.texture=texture;
+	}
+	
 	public ModelTexture getTexture() {
 		return texture;
 	}

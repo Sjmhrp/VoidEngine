@@ -2,25 +2,28 @@ package sjmhrp.world;
 
 import java.util.HashMap;
 
-import sjmhrp.linear.Quaternion;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.RigidBody;
-import sjmhrp.sky.Sun;
+import sjmhrp.sky.CelestialBody;
+import sjmhrp.sky.SkyDome;
 
 public class WorldState {
 
 	HashMap<RigidBody,State> states;
-	Vector3d sunPosition = new Vector3d();
-	Quaternion sunOrientation = new Quaternion();
+	HashMap<CelestialBody,Vector3d> celestialBodies;
 	int timeStamp;
 
 	public WorldState(World world, int tick) {
 		states = new HashMap<RigidBody,State>();
+		celestialBodies = new HashMap<CelestialBody,Vector3d>();
 		for(RigidBody body : world.rigidBodies) {
 			states.put(body,new State(body));
 		}
-		sunPosition.set(world.getSun().getPosition());
-		sunOrientation.set(world.getSun().getOrientation());
+		if(world.hasSky()) {
+			for(CelestialBody body : world.getSky().getBodies()) {
+				celestialBodies.put(body,new Vector3d(body.getPosition()));
+			}
+		}
 		timeStamp = tick;
 	}
 
@@ -32,8 +35,9 @@ public class WorldState {
 		return states.get(b);
 	}
 
-	public void loadSun(Sun s) {
-		s.getPosition().set(sunPosition);
-		s.getOrientation().set(sunOrientation);
+	public void loadSky(SkyDome s) {
+		for(CelestialBody body : s.getBodies()) {
+			body.getPosition().set(celestialBodies.get(body));
+		}
 	}
 }

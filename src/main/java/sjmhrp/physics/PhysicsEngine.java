@@ -3,6 +3,8 @@ package sjmhrp.physics;
 import java.util.ArrayList;
 
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.Display;
 
 import sjmhrp.event.EventListener;
 import sjmhrp.event.KeyHandler;
@@ -45,7 +47,9 @@ public class PhysicsEngine {
 	}
 	
 	public static void pause() {
+		Mouse.setGrabbed(paused);
 		paused=!paused;
+		if(paused)Mouse.setCursorPosition(Display.getWidth()/2,Display.getHeight()/2);
 	}
 	
 	public static void registerWorld(World world) {
