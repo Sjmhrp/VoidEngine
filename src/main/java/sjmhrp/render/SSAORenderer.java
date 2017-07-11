@@ -19,9 +19,11 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.Random;
 
+import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL30;
 
 import sjmhrp.linear.Vector3d;
+import sjmhrp.post.Fbo;
 import sjmhrp.post.Post;
 import sjmhrp.shaders.Shader;
 import sjmhrp.utils.ScalarUtils;
@@ -31,6 +33,8 @@ public class SSAORenderer {
 
 	static int ssaoNoise;
 	static Vector3d[] samples = new Vector3d[64];
+	static Fbo SSAO1 = new Fbo(Display.getWidth(),Display.getHeight(),Fbo.DEPTH_TEXTURE);
+	public static Fbo SSAO2 = new Fbo(Display.getWidth(),Display.getHeight(),Fbo.DEPTH_TEXTURE);
 
 	public static void init() {
 		genNoise();
@@ -67,19 +71,24 @@ public class SSAORenderer {
 		}
 	}
 
+	public static void cleanUp() {
+		SSAO1.cleanUp();
+		SSAO2.cleanUp();
+	}
+	
 	static void renderSSAO(Shader s, Camera c) {
-		Post.SSAO1.bindFrameBuffer();
+		SSAO1.bindFrameBuffer();
 		RenderHandler.clear();
 		s.getSSAOShader().start();
 		s.getSSAOShader().loadSamples(samples);
 		s.getSSAOShader().loadViewMatrix(c.getViewMatrix());
 		RenderHandler.renderQuad(Post.albedo.getDepthTexture(),Post.normal.getColourTexture(),ssaoNoise);
 		s.getSSAOShader().stop();
-		Post.SSAO2.bindFrameBuffer();
+		SSAO2.bindFrameBuffer();
 		RenderHandler.clear();
 		s.getSSAOBlurShader().start();
-		RenderHandler.renderQuad(Post.SSAO1.getColourTexture());
+		RenderHandler.renderQuad(SSAO1.getColourTexture());
 		s.getSSAOBlurShader().stop();
-		Post.SSAO2.unbindFrameBuffer();
+		SSAO2.unbindFrameBuffer();
 	}
 }

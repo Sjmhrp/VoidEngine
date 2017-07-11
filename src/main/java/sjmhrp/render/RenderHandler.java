@@ -54,6 +54,7 @@ import sjmhrp.core.Globals;
 import sjmhrp.debug.DebugRenderer;
 import sjmhrp.entity.Entity;
 import sjmhrp.entity.EntityShader;
+import sjmhrp.flare.FlareRenderer;
 import sjmhrp.io.Log;
 import sjmhrp.light.Light;
 import sjmhrp.light.LightShader;
@@ -77,6 +78,7 @@ import sjmhrp.textures.TerrainTexture;
 import sjmhrp.utils.MatrixUtils;
 import sjmhrp.utils.Profiler;
 import sjmhrp.view.Camera;
+import sjmhrp.view.Frustum;
 import sjmhrp.world.World;
 
 public class RenderHandler {
@@ -98,6 +100,12 @@ public class RenderHandler {
 			if (GLContext.getCapabilities().GL_ARB_depth_clamp)glEnable(GL_DEPTH_CLAMP);
 			gBuffer = new Fbo(Display.getWidth(),Display.getHeight());
 			DebugRenderer.init();
+			Frustum.init();
+			ModelPool.init();
+			Post.init();
+			SSAORenderer.init();
+			FlareRenderer.init();
+			SkyRenderer.init();
 		} catch(Exception e) {
 			Log.printError(e);
 		}
@@ -131,6 +139,7 @@ public class RenderHandler {
 		if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera,shader);
 		if(Globals.debug)DebugRenderer.render(shader,world,camera);
 		Post.main.unbindFrameBuffer();
+		FlareRenderer.renderFlares(shader,camera);
 		Post.clear();
 		Post.addToPipeline(shader.getContrastShader());
 		if(PhysicsEngine.paused){
@@ -163,7 +172,7 @@ public class RenderHandler {
 		s.start();
 		glDepthMask(false);
 		glDisable(GL_DEPTH_TEST);
-		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),Post.SSAO2.getColourTexture(),Post.albedo.getDepthTexture());
+		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),SSAORenderer.SSAO2.getColourTexture(),Post.albedo.getDepthTexture());
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(true);
 		s.stop();

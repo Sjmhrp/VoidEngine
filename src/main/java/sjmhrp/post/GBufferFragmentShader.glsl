@@ -17,7 +17,7 @@ void main(void){
 	vec3 lighting = texture(light,vTexturePos).rgb;
 	lighting+=max(0.2*texture(ssao,vTexturePos).r,0.1);
 	outColour = texture(albedo,vTexturePos);
-	outColour.rgb*=lighting;
+	outColour.rgb*=clamp(lighting,0,1+outColour.a);
 	float z = texture(depth,vTexturePos).r*2-1;
 	vec4 projPos = inverse(projectionMatrix)*vec4(vTexturePos*2-1,z,1.0);
 	vec3 pos = projPos.xyz/projPos.w;

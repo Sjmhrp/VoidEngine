@@ -1,11 +1,9 @@
 package sjmhrp.post;
 
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class GBufferShader extends ShaderProgram {
-
-	private static final String VERTEX_FILE = "/sjmhrp/post/GenericVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/post/GBufferFragmentShader.glsl";
+public class GBufferShader extends ShaderProgram implements MultiTextureShaderProgram {
 
 	private int location_albedo;
 	private int location_light;
@@ -13,7 +11,7 @@ public class GBufferShader extends ShaderProgram {
 	private int location_depth;
 	
 	public GBufferShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
+		super("post/Generic","post/GBuffer");
 	}
 
 	@Override

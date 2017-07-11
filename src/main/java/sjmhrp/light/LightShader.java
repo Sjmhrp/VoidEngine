@@ -1,12 +1,10 @@
 package sjmhrp.light;
 
 import sjmhrp.linear.Matrix4d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class LightShader extends ShaderProgram {
-
-	private static final String VERTEX_FILE = "/sjmhrp/light/LightVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/light/LightFragmentShader.glsl";
+public class LightShader extends ShaderProgram implements MultiTextureShaderProgram {
 
 	private int location_transformMatrix;
 	private int location_viewMatrix;
@@ -19,7 +17,7 @@ public class LightShader extends ShaderProgram {
 	private int location_lightSize;
 	
 	public LightShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
+		super("light/Light","light/Light");
 	}
 
 	@Override
@@ -42,11 +40,11 @@ public class LightShader extends ShaderProgram {
 	}
 
 	public void loadTransformMatrix(Matrix4d matrix) {
-		loadMatrix(location_transformMatrix, matrix);
+		load4Matrix(location_transformMatrix, matrix);
 	}
 
 	public void loadViewMatrix(Matrix4d matrix) {
-		loadMatrix(location_viewMatrix, matrix);
+		load4Matrix(location_viewMatrix, matrix);
 	}
 
 	public void loadLight(Light l) {

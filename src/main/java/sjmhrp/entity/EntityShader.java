@@ -2,13 +2,11 @@ package sjmhrp.entity;
 
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.linear.Vector2d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class EntityShader extends ShaderProgram{
+public class EntityShader extends ShaderProgram implements MultiTextureShaderProgram {
 
-	private static final String VERTEX_FILE = "/sjmhrp/entity/EntityVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/entity/EntityFragmentShader.glsl";
-	
 	private int location_transformMatrix;
 	private int location_viewMatrix;
 	private int location_reflectivity;
@@ -22,14 +20,14 @@ public class EntityShader extends ShaderProgram{
 	private int location_hasSpecular;
 	
 	public EntityShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
+		super("entity/Entity","entity/Entity");
 	}
 
 	@Override
 	protected void bind() {
-		bindAttribute(0, "position");
-		bindAttribute(1, "texturePos");
-		bindAttribute(2, "normal");
+		bindAttribute(0,"position");
+		bindAttribute(1,"texturePos");
+		bindAttribute(2,"normal");
 	}
 
 	@Override
@@ -49,11 +47,11 @@ public class EntityShader extends ShaderProgram{
 	}
 
 	public void loadTransformMatrix(Matrix4d matrix) {
-		loadMatrix(location_transformMatrix, matrix);
+		load4Matrix(location_transformMatrix, matrix);
 	}
 
 	public void loadViewMatrix(Matrix4d matrix) {
-		loadMatrix(location_viewMatrix, matrix);
+		load4Matrix(location_viewMatrix, matrix);
 	}
 
 	public void loadReflect(double r) {

@@ -9,7 +9,7 @@ public class HBlurShader extends PostShaderProgram {
 	private int location_width;
 
 	public HBlurShader() {
-		super("HBlur", "Blur");
+		super("post/HBlur", "post/Blur");
 	}
 	
 	@Override

@@ -5,14 +5,11 @@ import sjmhrp.shaders.ShaderProgram;
 
 public class CelestialShader extends ShaderProgram {
 
-	private static final String VERTEX_SHADER = "/sjmhrp/sky/CelestialVertexShader.glsl";
-	private static final String FRAGMENT_SHADER = "/sjmhrp/sky/CelestialFragmentShader.glsl";
-	
 	private int location_transformMatrix;
 	private int location_viewMatrix;
 	
 	public CelestialShader() {
-		super(VERTEX_SHADER,FRAGMENT_SHADER);
+		super("sky/Celestial","sky/Celestial");
 	}
 
 	@Override
@@ -28,10 +25,10 @@ public class CelestialShader extends ShaderProgram {
 	}
 
 	public void loadTransformMatrix(Matrix4d matrix) {
-		loadMatrix(location_transformMatrix,matrix);
+		load4Matrix(location_transformMatrix,matrix);
 	}
 	
 	public void loadViewMatrix(Matrix4d viewMatrix) {
-		loadMatrix(location_viewMatrix,viewMatrix);
+		load4Matrix(location_viewMatrix,viewMatrix);
 	}
 }

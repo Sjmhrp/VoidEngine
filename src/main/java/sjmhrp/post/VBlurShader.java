@@ -9,7 +9,7 @@ public class VBlurShader extends PostShaderProgram {
 	private int location_height;
 
 	public VBlurShader() {
-		super("VBlur", "Blur");
+		super("post/VBlur", "post/Blur");
 	}
 	
 	@Override

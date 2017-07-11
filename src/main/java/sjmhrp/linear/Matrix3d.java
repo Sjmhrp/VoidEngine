@@ -1,5 +1,7 @@
 package sjmhrp.linear;
 
+import java.nio.FloatBuffer;
+
 public class Matrix3d {
 
 	public double m00,m01,m02,m10,m11,m12,m20,m21,m22;
@@ -51,6 +53,19 @@ public class Matrix3d {
 	
 	public Matrix3d zero() {
 		return set(0,0,0,0,0,0,0,0,0);
+	}
+	
+	public Matrix3d store(FloatBuffer buf) {
+		buf.put((float)m00);
+		buf.put((float)m10);
+		buf.put((float)m20);
+		buf.put((float)m01);
+		buf.put((float)m11);
+		buf.put((float)m21);
+		buf.put((float)m02);
+		buf.put((float)m12);
+		buf.put((float)m22);
+		return this;
 	}
 	
 	public Matrix3d scale(double d) {

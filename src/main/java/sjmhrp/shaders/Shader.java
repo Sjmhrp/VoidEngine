@@ -1,7 +1,13 @@
 package sjmhrp.shaders;
 
+import java.util.HashMap;
+import java.util.Map.Entry;
+
 import sjmhrp.debug.AABBShader;
 import sjmhrp.entity.EntityShader;
+import sjmhrp.flare.DownSampleShader;
+import sjmhrp.flare.FeatureShader;
+import sjmhrp.flare.FlareShader;
 import sjmhrp.light.LightShader;
 import sjmhrp.light.SunLightShader;
 import sjmhrp.post.GBufferShader;
@@ -17,161 +23,135 @@ import sjmhrp.view.Frustum;
 
 public class Shader {
 	
-	private EntityShader entityShader;
-	private TerrainShader terrainShader;
-	private SkyShader skyShader;
-	private CelestialShader celestialShader;
-	private StarShader starShader;
-	private LightShader lightShader;
-	private SunLightShader sunLightShader;
-	private GBufferShader gBufferShader;
-	private PostShaderProgram contrastShader;
-	private VBlurShader vBlurShader;
-	private HBlurShader hBlurShader;
-	private SSAOShader ssaoShader;
-	private PostShaderProgram ssaoBlurShader;
-	private TintShader tintShader;
-
-	private AABBShader aabbShader;
+	private HashMap<String,ShaderProgram> shaders;
 
 	public Shader() {
-		entityShader = new EntityShader();
-		terrainShader = new TerrainShader();
-		skyShader = new SkyShader();
-		celestialShader = new CelestialShader();
-		starShader = new StarShader();
-		gBufferShader = new GBufferShader();
-		lightShader = new LightShader();
-		sunLightShader = new SunLightShader();
-		contrastShader = new PostShaderProgram("Generic","Contrast");
-		vBlurShader = new VBlurShader();
-		hBlurShader = new HBlurShader();
-		ssaoShader = new SSAOShader();
-		ssaoBlurShader = new PostShaderProgram("Generic","SSAOBlur");
-		tintShader = new TintShader();
-		aabbShader = new AABBShader();
+		shaders = new HashMap<String,ShaderProgram>();
+		addShader("EntityShader",new EntityShader());
+		addShader("TerrainShader",new TerrainShader());
+		addShader("SkyShader",new SkyShader());
+		addShader("CelestialShader",new CelestialShader());
+		addShader("StarShader",new StarShader());
+		addShader("GBufferShader",new GBufferShader());
+		addShader("LightShader",new LightShader());
+		addShader("SunLightShader",new SunLightShader());
+		addShader("ContrastShader",new PostShaderProgram("post/Generic","post/Contrast"));
+		addShader("VBlurShader",new VBlurShader());
+		addShader("HBlurShader",new HBlurShader());
+		addShader("SSAOShader",new SSAOShader());
+		addShader("SSAOBlurShader",new PostShaderProgram("post/Generic","post/SSAOBlur"));
+		addShader("DownSampleShader",new DownSampleShader());
+		addShader("FlareShader",new FlareShader());
+		addShader("FeatureShader",new FeatureShader());
+		addShader("TintShader",new TintShader());
+		addShader("AABBShader",new AABBShader());
 		initProjectionMatrices();
 		connectTextures();
 	}
 
+	void addShader(String name, ShaderProgram shader) {
+		shaders.put(name,shader);
+	}
+	
 	public void initProjectionMatrices() {
-		initProjectionMatrix(entityShader);
-		initProjectionMatrix(terrainShader);
-		initProjectionMatrix(skyShader);
-		initProjectionMatrix(celestialShader);
-		initProjectionMatrix(starShader);
-		initProjectionMatrix(lightShader);
-		initProjectionMatrix(sunLightShader);
-		initProjectionMatrix(gBufferShader);
-		initProjectionMatrix(ssaoShader);
-		initProjectionMatrix(aabbShader);
+		for(Entry<String,ShaderProgram> e : shaders.entrySet()) {
+			ShaderProgram s = e.getValue();
+			s.start();
+			s.loadProjectionMatrix(Frustum.getProjectionMatrix());
+			s.stop();
+		}
 	}
 
 	public void connectTextures() {
-		entityShader.start();
-		entityShader.connectTextures();
-		entityShader.stop();
-		terrainShader.start();
-		terrainShader.connectTextures();
-		terrainShader.stop();
-		skyShader.start();
-		skyShader.connectTextures();
-		skyShader.stop();
-		lightShader.start();
-		lightShader.connectTextures();
-		lightShader.stop();
-		sunLightShader.start();
-		sunLightShader.connectTextures();
-		sunLightShader.stop();
-		gBufferShader.start();
-		gBufferShader.connectTextures();
-		gBufferShader.stop();
-		ssaoShader.start();
-		ssaoShader.connectTextures();
-		ssaoShader.stop();
-	}
-
-	static void initProjectionMatrix(ShaderProgram shader) {
-		shader.start();
-		shader.loadProjectionMatrix(Frustum.getProjectionMatrix());
-		shader.stop();
+		for(Entry<String,ShaderProgram> e : shaders.entrySet()) {
+			if(e.getValue() instanceof MultiTextureShaderProgram) {
+				ShaderProgram s = e.getValue();
+				s.start();
+				((MultiTextureShaderProgram)s).connectTextures();
+				s.stop();
+			}
+		}
 	}
 
 	public void cleanUp() {
-		entityShader.cleanUp();
-		terrainShader.cleanUp();
-		skyShader.cleanUp();
-		celestialShader.cleanUp();
-		starShader.cleanUp();
-		lightShader.cleanUp();
-		sunLightShader.cleanUp();
-		gBufferShader.cleanUp();
-		contrastShader.cleanUp();
-		vBlurShader.cleanUp();
-		hBlurShader.cleanUp();
-		ssaoShader.cleanUp();
-		ssaoBlurShader.cleanUp();
-		tintShader.cleanUp();
-		aabbShader.cleanUp();
+		for(Entry<String,ShaderProgram> e : shaders.entrySet()) {
+			e.getValue().cleanUp();
+		}
 	}
 
+	public ShaderProgram getShader(String name) {
+		return shaders.get(name);
+	}
+	
 	public EntityShader getEntityShader() {
-		return entityShader;
+		return (EntityShader)getShader("EntityShader");
 	}
 
 	public TerrainShader getTerrainShader() {
-		return terrainShader;
+		return (TerrainShader)getShader("TerrainShader");
 	}
 	
 	public SkyShader getSkyShader() {
-		return skyShader;
+		return (SkyShader)getShader("SkyShader");
 	}
 	
 	public CelestialShader getCelestialShader() {
-		return celestialShader;
+		return (CelestialShader)getShader("CelestialShader");
 	}
 
 	public StarShader getStarShader() {
-		return starShader;
+		return (StarShader)getShader("StarShader");
 	}
 	
 	public LightShader getLightShader() {
-		return lightShader;
+		return (LightShader)getShader("LightShader");
 	}
 
 	public SunLightShader getSunLightShader() {
-		return sunLightShader;
+		return (SunLightShader)getShader("SunLightShader");
 	}
 	
 	public GBufferShader getGBufferShader() {
-		return gBufferShader;
+		return (GBufferShader)getShader("GBufferShader");
 	}
 
 	public PostShaderProgram getContrastShader() {
-		return contrastShader;
+		return (PostShaderProgram)getShader("ContrastShader");
 	}
 
 	public VBlurShader getVBlurShader() {
-		return vBlurShader;
+		return (VBlurShader)getShader("VBlurShader");
 	}
 	
 	public HBlurShader getHBlurShader() {
-		return hBlurShader;
+		return (HBlurShader)getShader("HBlurShader");
 	}
 	
 	public SSAOShader getSSAOShader() {
-		return ssaoShader;
+		return (SSAOShader)getShader("SSAOShader");
 	}
 
 	public PostShaderProgram getSSAOBlurShader() {
-		return ssaoBlurShader;
+		return (PostShaderProgram)getShader("SSAOBlurShader");
 	}
 
+	public DownSampleShader getDownSampleShader() {
+		return (DownSampleShader)getShader("DownSampleShader");
+	}
+	
+	public FlareShader getFlareShader() {
+		return (FlareShader)getShader("FlareShader");
+	}
+	
+	public FeatureShader getFeatureShader() {
+		return (FeatureShader)getShader("FeatureShader");
+	}
+	
 	public TintShader getTintShader() {
-		return tintShader;
+		return (TintShader)getShader("TintShader");
 	}
 	
 	public AABBShader getAabbShader() {
-		return aabbShader;
+		return (AABBShader)getShader("AABBShader");
 	}
 }

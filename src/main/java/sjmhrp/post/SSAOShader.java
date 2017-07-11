@@ -5,16 +5,10 @@ import org.lwjgl.opengl.Display;
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.linear.Vector2d;
 import sjmhrp.linear.Vector3d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class SSAOShader extends ShaderProgram {
-
-	private static final String VERTEX_FILE = "/sjmhrp/post/GenericVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/post/SSAOFragmentShader.glsl";
-	
-	public SSAOShader(String v, String f) {
-		super(VERTEX_FILE,FRAGMENT_FILE);
-	}
+public class SSAOShader extends ShaderProgram implements MultiTextureShaderProgram {
 
 	private int location_viewMatrix;
 	private int location_depth;
@@ -24,7 +18,7 @@ public class SSAOShader extends ShaderProgram {
 	private int[] location_samples;
 	
 	public SSAOShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
+		super("post/Generic","post/SSAO");
 	}
 
 	@Override
@@ -53,7 +47,7 @@ public class SSAOShader extends ShaderProgram {
 	}
 
 	public void loadViewMatrix(Matrix4d m) {
-		loadMatrix(location_viewMatrix,m);
+		load4Matrix(location_viewMatrix,m);
 	}
 
 	public void loadSamples(Vector3d[] samples) {

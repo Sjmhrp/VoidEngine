@@ -9,7 +9,7 @@ public class TintShader extends PostShaderProgram {
 	private int location_opacity;
 	
 	public TintShader() {
-		super("Generic","Tint");
+		super("post/Generic","post/Tint");
 	}
 
 	@Override

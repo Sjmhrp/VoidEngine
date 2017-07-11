@@ -1,13 +1,11 @@
 package sjmhrp.terrain;
 
 import sjmhrp.linear.Matrix4d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class TerrainShader extends ShaderProgram{
+public class TerrainShader extends ShaderProgram implements MultiTextureShaderProgram {
 		
-	private static final String VERTEX_FILE = "/sjmhrp/terrain/TerrainVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/terrain/TerrainFragmentShader.glsl";
-	
 	private int location_transformMatrix;
 	private int location_viewMatrix;
 	private int location_background;
@@ -18,7 +16,7 @@ public class TerrainShader extends ShaderProgram{
 	private int location_useBlend;
 	
 	public TerrainShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
+		super("terrain/Terrain","terrain/Terrain");
 	}
 
 	@Override
@@ -54,10 +52,10 @@ public class TerrainShader extends ShaderProgram{
 	}
 	
 	public void loadTransformMatrix(Matrix4d matrix) {
-		loadMatrix(location_transformMatrix, matrix);
+		load4Matrix(location_transformMatrix, matrix);
 	}
 	
 	public void loadViewMatrix(Matrix4d matrix) {
-		loadMatrix(location_viewMatrix, matrix);
+		load4Matrix(location_viewMatrix, matrix);
 	}
 }

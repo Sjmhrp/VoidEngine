@@ -29,6 +29,7 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL32;
 
 import sjmhrp.io.Log;
+import sjmhrp.linear.Matrix3d;
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.linear.Vector2d;
 import sjmhrp.linear.Vector3d;
@@ -41,14 +42,17 @@ public abstract class ShaderProgram {
 	private int geometryShaderID;
 	private int fragmentShaderID;
 
-	private static FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+	private static FloatBuffer matrix3Buffer = BufferUtils.createFloatBuffer(9);
+	private static FloatBuffer matrix4Buffer = BufferUtils.createFloatBuffer(16);
 
 	protected int location_projectionMatrix;
 
+	static final String RES_LOC = "/sjmhrp/";
+	
 	public ShaderProgram(String v, String f) {
-		vertexShaderID = loadShader(v, GL_VERTEX_SHADER);
+		vertexShaderID = loadShader(RES_LOC+v+"VertexShader.glsl",GL_VERTEX_SHADER);
 		geometryShaderID = 0;
-		fragmentShaderID = loadShader(f, GL_FRAGMENT_SHADER);
+		fragmentShaderID = loadShader(RES_LOC+f+"FragmentShader.glsl",GL_FRAGMENT_SHADER);
 		programID = glCreateProgram();
 		glAttachShader(programID, vertexShaderID);
 		glAttachShader(programID, fragmentShaderID);
@@ -59,9 +63,9 @@ public abstract class ShaderProgram {
 	}
 	
 	public ShaderProgram(String v, String g, String f) {
-		vertexShaderID = loadShader(v, GL_VERTEX_SHADER);
-		geometryShaderID = loadShader(g, GL32.GL_GEOMETRY_SHADER);
-		fragmentShaderID = loadShader(f, GL_FRAGMENT_SHADER);
+		vertexShaderID = loadShader(RES_LOC+v+"VertexShader.glsl", GL_VERTEX_SHADER);
+		geometryShaderID = loadShader(RES_LOC+g+"GeometryShader.glsl", GL32.GL_GEOMETRY_SHADER);
+		fragmentShaderID = loadShader(RES_LOC+f+"FragmentShader.glsl", GL_FRAGMENT_SHADER);
 		programID = glCreateProgram();
 		glAttachShader(programID, vertexShaderID);
 		glAttachShader(programID, geometryShaderID);
@@ -99,13 +103,19 @@ public abstract class ShaderProgram {
 	}
 	
 	protected void loadBoolean(int location, boolean value) {
-		GL20.glUniform1f(location, value?1:0);
+		GL20.glUniform1f(location,value?1:0);
 	}
 	
-	protected void loadMatrix(int location, Matrix4d value) {
-		value.store(matrixBuffer);
-		matrixBuffer.flip();
-		GL20.glUniformMatrix4(location, false, matrixBuffer);
+	protected void load3Matrix(int location, Matrix3d value) {
+		value.store(matrix3Buffer);
+		matrix3Buffer.flip();
+		GL20.glUniformMatrix3(location,false,matrix3Buffer);
+	}
+	
+	protected void load4Matrix(int location, Matrix4d value) {
+		value.store(matrix4Buffer);
+		matrix4Buffer.flip();
+		GL20.glUniformMatrix4(location,false,matrix4Buffer);
 	}
 	
 	public void start() {
@@ -161,6 +171,6 @@ public abstract class ShaderProgram {
 	}
 	
 	public void loadProjectionMatrix(Matrix4d matrix) {
-		loadMatrix(location_projectionMatrix,matrix);
+		load4Matrix(location_projectionMatrix,matrix);
 	}
 }

@@ -3,11 +3,11 @@ package sjmhrp.core;
 import org.lwjgl.opengl.Display;
 
 import sjmhrp.entity.EntityBuilder;
+import sjmhrp.flare.FlareRenderer;
 import sjmhrp.io.ConfigHandler;
 import sjmhrp.io.OBJHandler;
 import sjmhrp.light.Light;
 import sjmhrp.linear.Vector3d;
-import sjmhrp.models.ModelPool;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.constraint.joints.PrismaticJoint;
 import sjmhrp.physics.constraint.joints.RevoluteJoint;
@@ -26,16 +26,14 @@ import sjmhrp.render.RenderHandler;
 import sjmhrp.render.RenderRegistry;
 import sjmhrp.render.SSAORenderer;
 import sjmhrp.shaders.Shader;
-import sjmhrp.sky.SkyRenderer;
 import sjmhrp.textures.TerrainTexture;
 import sjmhrp.view.Camera;
-import sjmhrp.view.Frustum;
 import sjmhrp.world.World;
 
 public class Main {
 
 	public static final String TITLE = "Void Engine";
-	public static final String VERSION = "1.0.1";
+	public static final String VERSION = "1.0.2";
 	public static final int[] SIZE = {720,480};	
 
 	static Camera camera = new Camera(new Vector3d(375,33,461));
@@ -45,11 +43,6 @@ public class Main {
 	public static void main(String[] args) {
 		ConfigHandler.loadConfigFiles();
 		RenderHandler.init(TITLE+" "+VERSION,SIZE[0],SIZE[1],false);
-		Frustum.init();
-		ModelPool.init();
-		Post.init();
-		SSAORenderer.init();
-		SkyRenderer.init();
 		new MainKeyListener();
 		shader = new Shader();
 		createWorld();
@@ -231,6 +224,8 @@ public class Main {
 		shader.cleanUp();
 		RenderHandler.cleanUp();
 		Post.cleanUp();
+		SSAORenderer.cleanUp();
+		FlareRenderer.cleanUp();
 		Display.destroy();
 		System.exit(0);
 	}

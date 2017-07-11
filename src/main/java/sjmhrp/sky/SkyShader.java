@@ -1,12 +1,10 @@
 package sjmhrp.sky;
 
 import sjmhrp.linear.Matrix4d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 
-public class SkyShader extends ShaderProgram {
-
-	private static final String VERTEX_SHADER = "/sjmhrp/sky/SkyVertexShader.glsl";
-	private static final String FRAGMENT_SHADER = "/sjmhrp/sky/SkyFragmentShader.glsl";
+public class SkyShader extends ShaderProgram implements MultiTextureShaderProgram {
 
 	private int location_viewMatrix;
 	private int location_domeSize;
@@ -15,7 +13,7 @@ public class SkyShader extends ShaderProgram {
 	private int location_sunPosition;
 	
 	public SkyShader() {
-		super(VERTEX_SHADER,FRAGMENT_SHADER);
+		super("sky/Sky","sky/Sky");
 	}
 
 	@Override
@@ -36,7 +34,7 @@ public class SkyShader extends ShaderProgram {
 	}
 
 	public void loadViewMatrix(Matrix4d matrix) {
-		loadMatrix(location_viewMatrix, matrix);
+		load4Matrix(location_viewMatrix, matrix);
 	}
 	
 	public void load(SkyDome sky) {

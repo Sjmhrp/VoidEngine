@@ -1,14 +1,12 @@
 package sjmhrp.light;
 
 import sjmhrp.linear.Matrix4d;
+import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
 import sjmhrp.sky.CelestialBody;
 
-public class SunLightShader extends ShaderProgram {
+public class SunLightShader extends ShaderProgram implements MultiTextureShaderProgram {
 
-	private static final String VERTEX_FILE = "/sjmhrp/post/GenericVertexShader.glsl";
-	private static final String FRAGMENT_FILE = "/sjmhrp/light/SunLightFragmentShader.glsl";
-	
 	private int location_viewMatrix;
 	private int location_albedo;
 	private int location_normal;
@@ -17,7 +15,7 @@ public class SunLightShader extends ShaderProgram {
 	private int location_colour;
 	
 	public SunLightShader() {
-		super(VERTEX_FILE,FRAGMENT_FILE);
+		super("post/Generic","light/SunLight");
 	}
 
 	@Override
@@ -37,7 +35,7 @@ public class SunLightShader extends ShaderProgram {
 	}
 
 	public void loadViewMatrix(Matrix4d matrix) {
-		loadMatrix(location_viewMatrix,matrix);
+		load4Matrix(location_viewMatrix,matrix);
 	}
 	
 	public void load(CelestialBody body) {
