@@ -1,7 +1,11 @@
 package sjmhrp.linear;
 
-public class Quaternion {
+import java.io.Serializable;
 
+public class Quaternion implements Serializable{
+	
+	private static final long serialVersionUID = 4528591258882504679L;
+	
 	public double x,y,z,w;
 	
 	public Quaternion() {

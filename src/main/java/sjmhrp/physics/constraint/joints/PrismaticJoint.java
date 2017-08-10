@@ -14,6 +14,8 @@ import sjmhrp.utils.ScalarUtils;
 
 public class PrismaticJoint extends Joint {
 
+	private static final long serialVersionUID = 5386109006507630076L;
+	
 	Vector3d localPoint1;
 	Vector3d localPoint2;
 	Vector3d al;

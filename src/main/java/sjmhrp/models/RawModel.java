@@ -1,7 +1,11 @@
 package sjmhrp.models;
 
-public class RawModel {
+import java.io.Serializable;
 
+public class RawModel implements Serializable{
+	
+	private static final long serialVersionUID = -7351602918362249908L;
+	
 	int vaoId;
 	int vertexCount;
 	MeshData meshData;

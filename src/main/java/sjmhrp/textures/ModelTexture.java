@@ -1,7 +1,12 @@
 package sjmhrp.textures;
 
-public class ModelTexture {
+import java.io.Serializable;
 
+public class ModelTexture implements Serializable {
+
+	private static final long serialVersionUID = -282143818561756582L;
+	
+	private String name;
 	private int albedoID;
 	private int normalID;
 	private int specularID;
@@ -11,10 +16,11 @@ public class ModelTexture {
 	
 	private int numberOfRows = 1;
 	
-	public ModelTexture(int id) {
+	public ModelTexture(int id, String name) {
 		albedoID = id;
 		normalID = 0;
 		specularID = 0;
+		this.name = name;
 	}
 
 	public void loadNormalMap(int id) {
@@ -51,6 +57,10 @@ public class ModelTexture {
 		return useFakeLighting;
 	}
 
+	public String getName() {
+		return name;
+	}
+	
 	public int getAlbedoID() {
 		return albedoID;
 	}

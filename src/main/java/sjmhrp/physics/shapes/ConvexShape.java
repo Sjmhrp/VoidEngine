@@ -5,6 +5,8 @@ import sjmhrp.linear.Vector3d;
 
 public abstract class ConvexShape extends CollisionShape {
 
+	private static final long serialVersionUID = 7338077926552688815L;
+	
 	protected final Vector3d localScaling = new Vector3d(1,1,1);
 	protected final Vector3d implicitShapeDimensions = new Vector3d();
 	protected double collisionMargin = Globals.MARGIN;

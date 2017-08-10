@@ -1,5 +1,6 @@
 package sjmhrp.physics.collision;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -12,7 +13,9 @@ import sjmhrp.utils.GeometryUtils;
 import sjmhrp.utils.ScalarUtils;
 import sjmhrp.utils.VectorUtils;
 
-public class Manifold {
+public class Manifold implements Serializable {
+
+	private static final long serialVersionUID = 4791203012622865480L;
 
 	public static final int MANIFOLD_SIZE = 4;
 

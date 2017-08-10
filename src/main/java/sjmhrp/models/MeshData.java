@@ -1,10 +1,14 @@
 package sjmhrp.models;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 import sjmhrp.render.Loader;
 
-public class MeshData {
-
+public class MeshData implements Serializable{
+	
+	private static final long serialVersionUID = 6123086145398086517L;
+	
 	int[] indices;
 	int indexVbo;
 	double[] vertices;
@@ -17,6 +21,13 @@ public class MeshData {
 	public MeshData(double[] vertices, int vertexVbo) {
 		this.vertices=vertices;
 		this.vertexVbo=vertexVbo;
+	}
+	
+	public MeshData(double[] vertices, int vertexVbo, double[] uvs, int uvVbo) {
+		this.vertices=vertices;
+		this.vertexVbo=vertexVbo;
+		this.uvs=uvs;
+		this.uvVbo=uvVbo;
 	}
 	
 	public MeshData(double[] vertices, int vertexVbo, double[] uvs, int uvVbo, double[] normals, int normalVbo, int[] indices, int indexVbo) {

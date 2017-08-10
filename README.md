@@ -16,11 +16,8 @@ A Java-based 3D Game Engine
 * Cross-Platform Support, including Windows, OSX and Linux
  
 ## Controls
-* W/A/S/D/Space/Shift - Move Camera (Configurable from KeyBindings.cfg)
+* W/A/S/D/Space/Shift - Move Camera
 * Q - Rewind Time
-* P - Pause Time
-* R - Reset Level
-* L - Enable Debug Mode
   
 ## Getting Started
 * Windows:
@@ -40,7 +37,6 @@ Or download a compiled jar from [here](https://github.com/Sjmhrp/VoidEngine/rele
 ## Upcoming Features
 * Shadows
 * Better Stabilization for joints
-* A GUI (and pause menu)
 * Sleeping for inactive bodies
 * Featherstone solver for joints
 * More Post-Processing Effects

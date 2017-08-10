@@ -1,12 +1,15 @@
 package sjmhrp.physics.collision.broadphase;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import sjmhrp.linear.Vector3d;
 import sjmhrp.utils.GeometryUtils;
 
-public class Node {
-
+public class Node implements Serializable {
+	
+	private static final long serialVersionUID = -393595206105143426L;
+	
 	Node parent;
 	Node left;
 	Node right;

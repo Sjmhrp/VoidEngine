@@ -18,8 +18,9 @@ void main(void){
 	lighting+=max(0.2*texture(ssao,vTexturePos).r,0.1);
 	outColour = texture(albedo,vTexturePos);
 	outColour.rgb*=clamp(lighting,0,1+outColour.a);
-	float z = texture(depth,vTexturePos).r*2-1;
-	vec4 projPos = inverse(projectionMatrix)*vec4(vTexturePos*2-1,z,1.0);
-	vec3 pos = projPos.xyz/projPos.w;
-	outColour.a=1-clamp(exp(-pow((pos.z*density),gradient)),0,1);
+	float A = projectionMatrix[2][2];
+    float B = projectionMatrix[3][2];
+    float z = texture(depth,vTexturePos).r;
+    float d=B/(z*2-1+A);
+	outColour.a=1-clamp(exp(-pow((d*density),gradient)),0,1);
 }

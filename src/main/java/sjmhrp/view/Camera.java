@@ -26,11 +26,12 @@ public class Camera implements KeyListener {
 	
 	private final Matrix4d viewMatrix = new Matrix4d();
 	private final Matrix4d rotMatrix = new Matrix4d();
+
+	{PhysicsEngine.addEventListener(this);}
 	
 	public Camera(Vector3d pos, Vector3d ori) {
 		position.set(pos);
 		orientation.set(ori);
-		PhysicsEngine.addEventListener(this);
 	}
 
 	public Camera(Vector3d pos) {
@@ -43,7 +44,11 @@ public class Camera implements KeyListener {
 		rotMatrix.set(viewMatrix);
 		viewMatrix.translate(position.getNegative());
 	}
-
+	
+	public Vector3d getPosition() {
+		return position;
+	}
+	
 	public Matrix4d getViewMatrix() {
 		return viewMatrix;
 	}
@@ -71,17 +76,14 @@ public class Camera implements KeyListener {
 		if(KeyHandler.keyPressed("right"))d.x+=MOVE_SPEED*dt;
 		if(KeyHandler.keyPressed("up"))position.y+=MOVE_SPEED*dt;
 		if(KeyHandler.keyPressed("down"))position.y-=MOVE_SPEED*dt;
-		moveFromDir(d);
-	}
-	
-	void moveFromDir(Vector3d v) {
-		position.x+=v.x*cos(toRadians(orientation.y))-v.z*sin(toRadians(orientation.y));
-		position.y-=v.y*sin(toRadians(orientation.x))-v.z*sin(toRadians(orientation.x));
-		position.z+=v.x*sin(toRadians(orientation.y))+v.z*cos(toRadians(orientation.y));
+		position.x+=d.x*cos(toRadians(orientation.y))-d.z*sin(toRadians(orientation.y));
+		position.y-=d.y*sin(toRadians(orientation.x))-d.z*sin(toRadians(orientation.x));
+		position.z+=d.x*sin(toRadians(orientation.y))+d.z*cos(toRadians(orientation.y));
 	}
 
 	@Override
 	public void tick() {
+		if(PhysicsEngine.paused)return;
 		processMouse(PhysicsEngine.getTimeStep());
 		processKeyboard(PhysicsEngine.getTimeStep());
 		updateViewMatrices();
@@ -101,10 +103,5 @@ public class Camera implements KeyListener {
 
 	@Override
 	public void mouseReleased(int key) {
-	}
-
-	@Override
-	public boolean canPause() {
-		return true;
 	}
 }

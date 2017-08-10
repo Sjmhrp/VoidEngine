@@ -11,4 +11,5 @@ void main(void) {
 	outColour.rgb=gColour;
 	outColour.a=min(pow(max(1-4/3*(length(gTexturePos)-0.25),0),4),1);
 	outColour.rgb*=outColour.a;
+	outColour.rgb=clamp(outColour.rgb,0,1);
 }

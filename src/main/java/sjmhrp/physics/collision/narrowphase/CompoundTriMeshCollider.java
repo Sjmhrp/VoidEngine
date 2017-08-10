@@ -24,7 +24,7 @@ public class CompoundTriMeshCollider extends NarrowPhaseAlgorithm{
 		Transform compoundTransform;
 		Transform staticTransform;
 		int order = 0;
-		if(m.body1.isConvex()) {
+		if(m.body1.isCompound()) {
 			b1=m.body1;
 			b2=m.body2;
 			compoundTransform=t1;

@@ -7,6 +7,7 @@ out vec4 outColour;
 uniform sampler2D glow;
 uniform sampler2D colour;
 uniform vec3 sunPosition;
+uniform float hasClouds;
 
 const float cloudCover = 128;
 const float cloudSharpness = 0.96;
@@ -59,6 +60,7 @@ float cloudExp(float d) {
 }
 
 float noise(vec3 p) {
+	if(vPosition.y<=0)return 0;
 	float noise = 0.5*perlinNoise(p*5)+0.25*perlinNoise(p*10)+0.125*perlinNoise(p*20)+0.0625*perlinNoise(p*40)+0.03125*perlinNoise(p*80)+0.015625*perlinNoise(p*160)+0.0078125*perlinNoise(p*320)+0.00390625*perlinNoise(p*640);
 	return cloudExp(noise);
 }
@@ -69,7 +71,8 @@ void main(void) {
 	vec4 kC = texture(colour,vec2(clamp(0.5*l.y+0.5,0.01,0.99),clamp(1-vPosition.y,0.01,0.99)));
 	vec4 kG = texture(glow,vec2(clamp(0.5*l.y+0.5,0.01,0.99),clamp(1-dot(vPosition,l),0.01,0.99)));
 	outColour=kC+kG*kG.a/2;
-	float n = noise(vPosition);
+	float n = 0;
+	if(hasClouds>0.5)n = noise(vPosition);
 	outColour.rgb=mix(outColour.rgb,cloudColour,n);
 	outColour.a=n;
 }

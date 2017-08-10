@@ -1,5 +1,7 @@
 package sjmhrp.physics.dynamics;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Matrix3d;
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.linear.Quaternion;
@@ -13,8 +15,10 @@ import sjmhrp.physics.shapes.SphereShape;
 import sjmhrp.physics.shapes.StaticTriMesh;
 import sjmhrp.world.World;
 
-public class CollisionBody {
+public class CollisionBody implements Serializable{
 
+	private static final long serialVersionUID = 8586413579905937863L;
+	
 	Vector3d position;
 	Quaternion orientation;
 
@@ -23,7 +27,7 @@ public class CollisionBody {
 
 	CollisionShape collisionShape;
 
-	World world;
+	transient World world;
 
 	public CollisionBody(CollisionShape collisionShape) {
 		this(new Vector3d(),new Quaternion(),collisionShape);

@@ -5,7 +5,7 @@ import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.RigidBody;
 
 public class State {
-
+	
 	Vector3d position;
 	Quaternion rotation;
 	Vector3d linearVel;

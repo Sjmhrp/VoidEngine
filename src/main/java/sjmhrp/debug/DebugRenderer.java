@@ -16,11 +16,11 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 
 import sjmhrp.entity.Entity;
-import sjmhrp.entity.EntityBuilder;
 import sjmhrp.entity.EntityShader;
 import sjmhrp.linear.Quaternion;
 import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector3d;
+import sjmhrp.models.ModelPool;
 import sjmhrp.models.TexturedModel;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.collision.Manifold;
@@ -31,6 +31,7 @@ import sjmhrp.render.Loader;
 import sjmhrp.render.RenderHandler;
 import sjmhrp.shaders.Shader;
 import sjmhrp.textures.ModelTexture;
+import sjmhrp.textures.TexturePool;
 import sjmhrp.utils.Profiler;
 import sjmhrp.view.Camera;
 import sjmhrp.world.World;
@@ -53,7 +54,7 @@ public class DebugRenderer {
 		vbo = Loader.createEmptyVBO(MAX_INSTANCES*DATA_LENGTH);
 		Loader.addInstancedAttrib(vao,vbo,0,4,DATA_LENGTH,0);
 		Loader.addInstancedAttrib(vao,vbo,1,4,DATA_LENGTH,3);
-		sphere = EntityBuilder.newColouredModel("SPHERE","red");
+		sphere = new TexturedModel(ModelPool.getModel("SPHERE"),TexturePool.getColour("red"));
 	}
 
 	public static void clearContacts() {

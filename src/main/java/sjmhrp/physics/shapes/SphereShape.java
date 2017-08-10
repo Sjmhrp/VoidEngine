@@ -7,6 +7,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class SphereShape extends ConvexShape {
 
+	private static final long serialVersionUID = -252539298613101923L;
+
 	public SphereShape(double radius) {
 		implicitShapeDimensions.x=radius;
 		setMargin(radius);

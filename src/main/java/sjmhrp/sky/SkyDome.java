@@ -1,13 +1,18 @@
 package sjmhrp.sky;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
+import sjmhrp.io.StarHandler;
 import sjmhrp.view.Frustum;
 
-public class SkyDome {
-
+public class SkyDome implements Serializable{
+	
+	private static final long serialVersionUID = 2767563321211622722L;
+	
 	ArrayList<CelestialBody> bodies = new ArrayList<CelestialBody>();
-	ArrayList<Star> stars = new ArrayList<Star>();
+	String starCat;
+	transient ArrayList<Star> stars = new ArrayList<Star>();
 	private double size = Frustum.FAR_PLANE;
 
 	public void addBody(CelestialBody b) {
@@ -53,5 +58,14 @@ public class SkyDome {
 			if(body instanceof Sun)return (Sun)body;
 		}
 		return null;
+	}
+	
+	public void loadStars(String cat) {
+		starCat = cat;
+		reloadStars();
+	}
+	
+	public void reloadStars() {
+		stars = StarHandler.readStars(starCat+".dat");
 	}
 }

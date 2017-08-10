@@ -4,11 +4,12 @@ import java.util.ArrayList;
 
 import sjmhrp.core.Globals;
 import sjmhrp.debug.DebugRenderer;
+import sjmhrp.io.ConfigHandler;
 import sjmhrp.physics.collision.Manifold;
 import sjmhrp.physics.constraint.joints.Joint;
 
 public class Island {
-
+	
 	private ArrayList<RigidBody> bodies = new ArrayList<RigidBody>();
 	private ArrayList<Manifold> manifolds = new ArrayList<Manifold>();
 	private ArrayList<Joint> joints = new ArrayList<Joint>();
@@ -35,7 +36,7 @@ public class Island {
 
 	public void solveVelocityConstraints() {
 		for(Manifold m : manifolds) {
-			if(Globals.debug)DebugRenderer.addContacts(m);
+			if(ConfigHandler.getBoolean("debug"))DebugRenderer.addContacts(m);
 			m.prestep();
 		}
 		for(Joint j : joints) {

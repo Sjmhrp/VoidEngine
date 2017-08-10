@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 import sjmhrp.linear.Vector3d;
+import sjmhrp.sky.SkyRenderer;
 import sjmhrp.sky.Star;
 import sjmhrp.utils.ScalarUtils;
 
@@ -37,7 +38,7 @@ public class StarHandler {
 				Vector3d pos = new Vector3d(x,y,z);
 				double radius = Math.sqrt(Math.exp(0.92103*Double.valueOf(m)))*0.02;
 				Vector3d colour = ScalarUtils.bvToRGB(Double.valueOf(bv));
-				stars.add(new Star(pos,colour,radius));
+				if(radius>SkyRenderer.MIN_STAR_SIZE)stars.add(new Star(pos,colour,radius));
 			}
 			reader.close();
 		} catch(Exception e) {

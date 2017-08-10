@@ -1,5 +1,6 @@
 package sjmhrp.sky;
 
+import sjmhrp.io.ConfigHandler;
 import sjmhrp.linear.Matrix4d;
 import sjmhrp.shaders.MultiTextureShaderProgram;
 import sjmhrp.shaders.ShaderProgram;
@@ -10,6 +11,7 @@ public class SkyShader extends ShaderProgram implements MultiTextureShaderProgra
 	private int location_domeSize;
 	private int location_glow;
 	private int location_colour;
+	private int location_hasClouds;
 	private int location_sunPosition;
 	
 	public SkyShader() {
@@ -30,6 +32,7 @@ public class SkyShader extends ShaderProgram implements MultiTextureShaderProgra
 		location_domeSize = getUniformLocation("domeSize");
 		location_glow = getUniformLocation("glow");
 		location_colour = getUniformLocation("colour");
+		location_hasClouds = getUniformLocation("hasClouds");
 		location_sunPosition = getUniformLocation("sunPosition");
 	}
 
@@ -39,6 +42,7 @@ public class SkyShader extends ShaderProgram implements MultiTextureShaderProgra
 	
 	public void load(SkyDome sky) {
 		loadFloat(location_domeSize,sky.getSize());
+		loadBoolean(location_hasClouds,ConfigHandler.getBoolean("clouds"));
 		load3Vector(location_sunPosition,sky.getSun().getPosition());
 	}
 	

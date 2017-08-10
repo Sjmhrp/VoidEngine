@@ -8,6 +8,8 @@ import sjmhrp.utils.GeometryUtils;
 
 public class TriangleShape extends ConvexShape{
 	
+	private static final long serialVersionUID = 4037380134694774642L;
+	
 	public Vector3d p1,p2,p3;
 	
 	public TriangleShape(Vector3d p1, Vector3d p2, Vector3d p3) {

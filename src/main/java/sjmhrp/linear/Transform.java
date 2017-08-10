@@ -1,7 +1,11 @@
 package sjmhrp.linear;
 
-public class Transform {
+import java.io.Serializable;
 
+public class Transform implements Serializable{
+	
+	private static final long serialVersionUID = -1374557009741140780L;
+	
 	public final Vector3d position = new Vector3d();
 	public final Quaternion orientation = new Quaternion();
 	

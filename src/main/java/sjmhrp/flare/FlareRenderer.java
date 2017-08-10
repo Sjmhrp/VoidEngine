@@ -19,6 +19,12 @@ import sjmhrp.view.Camera;
 
 public class FlareRenderer {
 
+	static final Vector3d BIAS = new Vector3d(1.2);
+	static final int SAMPLES = 5;
+	static final double DISPERSAL = 0.37;
+	static final double HALO_WIDTH = 0.4;
+	static final double DISTORTION = 0.1;
+	
 	public static Fbo lensFlare = new Fbo(Display.getWidth(),Display.getHeight(),Fbo.DEPTH_TEXTURE);
 	public static Fbo temp = new Fbo(Display.getWidth(),Display.getHeight(),Fbo.DEPTH_TEXTURE);
 	
@@ -40,13 +46,13 @@ public class FlareRenderer {
 	public static void renderFlares(Shader s, Camera c) {
 		lensFlare.bindFrameBuffer();
 		s.getDownSampleShader().start();
-		s.getDownSampleShader().loadBias(new Vector3d(1.2));
+		s.getDownSampleShader().loadBias(BIAS);
 		RenderHandler.clear();
 		RenderHandler.renderQuad(Post.main.getColourTexture());
 		s.getDownSampleShader().stop();
 		temp.bindFrameBuffer();
 		s.getFeatureShader().start();
-		s.getFeatureShader().load(5,0.37,0.4,0.1);
+		s.getFeatureShader().load(SAMPLES,DISPERSAL,HALO_WIDTH,DISTORTION);
 		RenderHandler.clear();
 		RenderHandler.renderQuad(lensFlare.getColourTexture(),flareColour);
 		s.getFeatureShader().stop();

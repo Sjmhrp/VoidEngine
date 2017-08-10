@@ -14,7 +14,6 @@ public class Globals {
 	public static final int IMPULSE_ITERATIONS = 32;
 	public static final int POSITION_ITERATIONS = 10;
 
-	public static boolean debug = false;
 	public static boolean accumulateImpulse = true;
 	public static boolean warmstart = true;
 	public static boolean positionCorrection = true;

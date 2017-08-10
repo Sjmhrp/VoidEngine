@@ -1,7 +1,11 @@
 package sjmhrp.textures;
 
-public class TerrainTexture {
+import java.io.Serializable;
 
+public class TerrainTexture implements Serializable{
+	
+	private static final long serialVersionUID = 703561087132300468L;
+	
 	ModelTexture background;
 	ModelTexture rTexture;
 	ModelTexture gTexture;
@@ -54,5 +58,13 @@ public class TerrainTexture {
 	
 	public boolean useBlend() {
 		return blend;
+	}
+	
+	public void reload() {
+		background = TexturePool.getTexture(background.getName());
+		if(rTexture!=null)rTexture = TexturePool.getTexture(rTexture.getName());
+		if(gTexture!=null)gTexture = TexturePool.getTexture(gTexture.getName());
+		if(bTexture!=null)bTexture = TexturePool.getTexture(bTexture.getName());
+		if(blendMap!=null)blendMap = TexturePool.getTexture(blendMap.getName());
 	}
 }

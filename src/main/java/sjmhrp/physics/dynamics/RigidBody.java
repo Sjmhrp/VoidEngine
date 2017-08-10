@@ -8,8 +8,10 @@ import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.shapes.CollisionShape;
 import sjmhrp.world.World;
 
-public class RigidBody extends CollisionBody{
+public class RigidBody extends CollisionBody {
 
+	private static final long serialVersionUID = -374575764140226617L;
+	
 	Vector3d velocity = new Vector3d();
 	Vector3d prevVelocity = new Vector3d();
 	Vector3d angularVelocity = new Vector3d();
@@ -23,6 +25,8 @@ public class RigidBody extends CollisionBody{
 
 	double invmass = 1;
 	Matrix3d invInertiaMatrix = new Matrix3d();
+	
+	double angularFactor = 1;
 
 	public RigidBody(double mass, CollisionShape shape) {
 		this(new Vector3d(),new Quaternion(),mass,shape);
@@ -57,7 +61,7 @@ public class RigidBody extends CollisionBody{
 	public void integratePosition() {
 		if(invmass==0)return;
 		position.add(Vector3d.scale(0.5*PhysicsEngine.getTimeStep(),Vector3d.add(velocity,prevVelocity)));
-		orientation.rotate(Vector3d.add(angularVelocity,prevAngularVelocity),0.5*PhysicsEngine.getTimeStep());
+		orientation.rotate(Vector3d.add(angularVelocity,prevAngularVelocity),0.5*PhysicsEngine.getTimeStep()*angularFactor);
 	}
 
 	public void integrateVelocity() {
@@ -153,6 +157,14 @@ public class RigidBody extends CollisionBody{
 		return angularVelocity;
 	}
 
+	public void setAngularFactor(double d) {
+		angularFactor = d;
+	}
+	
+	public double getAngularFactor() {
+		return angularFactor;
+	}
+	
 	public void setInvMass(double invmass) {
 		if(this.invmass==invmass)return;
 		this.invmass = invmass;

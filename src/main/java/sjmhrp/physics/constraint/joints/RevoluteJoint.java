@@ -16,6 +16,8 @@ import sjmhrp.utils.ScalarUtils;
 
 public class RevoluteJoint extends Joint {
 
+	private static final long serialVersionUID = 6298421176988779229L;
+	
 	Vector3d localPoint1;
 	Vector3d localPoint2;
 	Vector3d a1l;

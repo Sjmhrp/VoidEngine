@@ -10,6 +10,8 @@ import sjmhrp.utils.GeometryUtils;
 
 public class ConvexHullShape extends ConvexShape{
 
+	private static final long serialVersionUID = -1975086239303975300L;
+	
 	ArrayList<Vector3d> vertices = new ArrayList<Vector3d>();
 	
 	public ConvexHullShape(ArrayList<Vector3d> vertices) {

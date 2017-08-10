@@ -16,6 +16,7 @@ public class GBufferShader extends ShaderProgram implements MultiTextureShaderPr
 
 	@Override
 	protected void getAllUniformLocations() {
+		location_projectionMatrix = getUniformLocation("projectionMatrix");
 		location_albedo = getUniformLocation("albedo");
 		location_light = getUniformLocation("light");
 		location_ssao = getUniformLocation("ssao");
@@ -24,7 +25,7 @@ public class GBufferShader extends ShaderProgram implements MultiTextureShaderPr
 
 	@Override
 	protected void bind() {
-		bindAttribute(0, "position");
+		bindAttribute(0,"position");
 	}
 
 	public void connectTextures() {

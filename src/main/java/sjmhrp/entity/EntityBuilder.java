@@ -1,74 +1,86 @@
 package sjmhrp.entity;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-import sjmhrp.io.OBJHandler;
-import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.models.ModelPool;
+import sjmhrp.models.RawModel;
 import sjmhrp.models.TexturedModel;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.physics.shapes.CompoundShape;
 import sjmhrp.physics.shapes.ConvexShape;
 import sjmhrp.textures.ModelTexture;
 import sjmhrp.textures.TexturePool;
+import sjmhrp.utils.ColourUtils;
 
-public class EntityBuilder {
+public class EntityBuilder implements Serializable {
 
-	public static TexturedModel newColouredModel(String obj, String colour) {
-		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getColour(colour));
+	private static final long serialVersionUID = -1949393937274450939L;
+
+	public static ArrayList<EntityBuilder> entityBuilders = new ArrayList<EntityBuilder>();
+	
+	RigidBody body;
+	String texture;
+	String normalMap;
+	String specularMap;
+	String model;
+	Vector3d colour = new Vector3d();
+	boolean hasTexture = false;
+	boolean hasNormals = false;
+	boolean hasSpecular = false;
+	boolean hasModel = false;
+	
+	public EntityBuilder(RigidBody body) {
+		this.body=body;
+		entityBuilders.add(this);
 	}
 	
-	public static TexturedModel newColouredModel(String obj, Vector3d colour) {
-		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getColour(colour));
+	public EntityBuilder setTexture(String texture) {
+		this.texture = texture;
+		hasTexture=true;
+		return this;
+	}
+
+	public EntityBuilder setNormalMap(String normalMap) {
+		this.normalMap = normalMap;
+		hasNormals=true;
+		return this;
+	}
+
+	public EntityBuilder setSpecularMap(String specularMap) {
+		this.specularMap = specularMap;
+		hasSpecular=true;
+		return this;
+	}
+
+	public EntityBuilder setModel(String model) {
+		this.model = model;
+		hasModel = true;
+		return this;
 	}
 	
-	public static TexturedModel newModel(String obj, String texture) {
-		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getTexture(texture));
+	public EntityBuilder setColour(Vector3d colour) {
+		this.colour = colour;
+		hasTexture=false;
+		return this;
 	}
 
-	public static TexturedModel newModel(String obj, String texture, String normalMap) {
-		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getTexture(texture,normalMap));
-	}
-
-	public static TexturedModel newModel(String obj, String texture, String normalMap, String specularMap) {
-		return new TexturedModel(ModelPool.getModel(obj),TexturePool.getTexture(texture,normalMap,specularMap));
-	}
-
-	public static RigidBody newStaticTriMesh(String mesh, Transform t) {
-		return new RigidBody(t,0,OBJHandler.parseCollisionMesh(mesh,t));
-	}
-
-	public static Entity createColourEntity(RigidBody b, String colour) {
-		return createEntity(b,TexturePool.getColour(colour));
+	public EntityBuilder setColour(String colour) {
+		return setColour(ColourUtils.getColour(colour));
 	}
 	
-	public static Entity createColourEntity(RigidBody b, Vector3d colour) {
-		return createEntity(b,TexturePool.getColour(colour));
-	}
-	
-	public static Entity createColourEntity(RigidBody b, String model, String colour) {
-		return createEntity(b,model,TexturePool.getColour(colour));
-	}
-	
-	public static Entity createColourEntity(RigidBody b, String model, Vector3d colour) {
-		return createEntity(b,model,TexturePool.getColour(colour));
-	}
-	
-	public static Entity createEntity(RigidBody b, String texture) {
-		return createEntity(b,TexturePool.getTexture(texture));
-	}
-
-	public static Entity createEntity(RigidBody b, String model, String texture) {
-		return createEntity(b,model,TexturePool.getTexture(texture));
-	}
-
-	public static Entity createEntity(RigidBody b, ModelTexture texture) {
-		return createEntity(b,b.getCollisionShape().getName(),texture);
-	}
-
-	public static Entity createEntity(RigidBody b, String model, ModelTexture texture) {
-		return new Entity(new TexturedModel(ModelPool.getModel(model),texture),b.getPosition(),b.getOrientation()).setSkew(b.getSkew());
+	public Entity build() {
+		ModelTexture t = null;
+		if(hasTexture) {
+			if(hasNormals&&hasSpecular)t=TexturePool.getTexture(texture,normalMap,specularMap);
+			if(hasNormals&&!hasSpecular)t=TexturePool.getTexture(texture,normalMap);
+			if(!hasNormals)t=TexturePool.getTexture(texture);
+		} else {
+			t=TexturePool.getColour(colour);
+		}
+		RawModel m = ModelPool.getModel(hasModel?model:body.getCollisionShape().getName());
+		return new Entity(new TexturedModel(m,t),body.getPosition(),body.getOrientation()).setSkew(body.getSkew());
 	}
 
 	public static ArrayList<Entity> createCompoundEntity(RigidBody b, String[] textures) {
@@ -80,5 +92,9 @@ public class EntityBuilder {
 			es.add(new Entity(new TexturedModel(ModelPool.getModel(s.getName()),TexturePool.getTexture(textures[n++])),b.getPosition(),b.getOrientation()).setSkew(s.getSkewMatrix().mul(shape.getOffset(s).getMatrix())));
 		}
 		return es;
+	}
+	
+	public static ArrayList<EntityBuilder> getEntityBuilders() {
+		return entityBuilders;
 	}
 }

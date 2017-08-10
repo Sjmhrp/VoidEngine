@@ -3,8 +3,10 @@ package sjmhrp.physics.dynamics.forces;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.RigidBody;
 
-public class Spring extends Force{
+public class Spring extends Force {
 
+	private static final long serialVersionUID = 7711297537246027354L;
+	
 	double springConstant;
 	double naturalLength;
 	boolean breakable;

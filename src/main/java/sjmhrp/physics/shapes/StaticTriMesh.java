@@ -10,6 +10,8 @@ import sjmhrp.physics.collision.broadphase.Tree;
 
 public class StaticTriMesh extends CollisionShape{
 
+	private static final long serialVersionUID = 6554328017488502778L;
+	
 	ArrayList<TriangleShape> mesh = new ArrayList<TriangleShape>();
 	Tree tree = new Tree();
 

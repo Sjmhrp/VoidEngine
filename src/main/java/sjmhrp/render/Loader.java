@@ -56,6 +56,15 @@ public class Loader {
 		return new RawModel(id, pos.length/dim,m);
 	}
 
+	public static RawModel load(double[] pos, double[] texPos) {
+        int id = create();
+        int v = store(0,2,pos);
+        int u = store(1,2,texPos);
+        unbind();
+        MeshData m = new MeshData(pos,v,texPos,u);
+        return new RawModel(id,pos.length/2,m);
+	}
+	
 	public static int loadTexture(String file) {
 		Texture texture = null;
 		try {
@@ -70,6 +79,7 @@ public class Loader {
 				Log.println("Anisotropic Filtering is not supported");
 			}
 		} catch (Exception e) {
+			Log.println("Tried to load "+file+".png");
 			Log.printError(e);
 		}
 		int id = texture.getTextureID();
@@ -95,7 +105,7 @@ public class Loader {
 		GL30.glBindVertexArray(id);
 		return id;
 	}
-
+	
 	private static int store(int n, int size, double[] data) {
 		int id = GL15.glGenBuffers();
 		vbos.add(id);
@@ -106,7 +116,7 @@ public class Loader {
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 		return id;
 	}
-
+	
 	public static void updateVbo(int vbo, int n, int size, double[] data) {
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
 		FloatBuffer f = convertFloats(data);

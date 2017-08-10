@@ -8,7 +8,7 @@ import sjmhrp.sky.CelestialBody;
 import sjmhrp.sky.SkyDome;
 
 public class WorldState {
-
+	
 	HashMap<RigidBody,State> states;
 	HashMap<CelestialBody,Vector3d> celestialBodies;
 	int timeStamp;

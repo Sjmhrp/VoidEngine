@@ -42,7 +42,8 @@ import sjmhrp.view.Camera;
 
 public class SkyRenderer {
 	
-	static final int MAX_INSTANCES = 100000;
+	public static final double MIN_STAR_SIZE = 2.2;
+	static final int MAX_INSTANCES = 10000;
 	static final int DATA_LENGTH = 7;
 	static final FloatBuffer buffer = BufferUtils.createFloatBuffer(DATA_LENGTH*MAX_INSTANCES);
 	
@@ -50,7 +51,7 @@ public class SkyRenderer {
 	static int vbo;
 	static int glowTexture;
 	static int colourTexture;
-	
+
 	public static void init() {
 		vao = Loader.createVao();
 		vbo = Loader.createEmptyVBO(MAX_INSTANCES*DATA_LENGTH);
@@ -60,7 +61,7 @@ public class SkyRenderer {
 		glowTexture = Loader.loadTexture("map/skyGlow");
 		colourTexture = Loader.loadTexture("map/skyColour");
 	}
-	
+
 	public static void renderSky(SkyDome sky, Camera camera, Shader shader) {
 		renderSkyDome(sky,camera,shader.getSkyShader());
 		renderCelestial(sky,camera,shader.getCelestialShader());
@@ -102,7 +103,7 @@ public class SkyRenderer {
 		GL20.glEnableVertexAttribArray(0);
 		for(CelestialBody body : sky.getBodies()) {
 			Vector3d pos = body.getPosition().getUnit();
-			Quaternion orientation = new Quaternion().rotate(new Vector3d(0.5*Math.PI,0,0),1).rotate(new Vector3d(-pos.z,0,pos.x).normalize(),-Math.acos(pos.y));
+			Quaternion orientation = new Quaternion().rotate(new Vector3d(0.5*Math.PI,0,0),1).rotate(pos.z==0&&pos.x==0?new Vector3d():new Vector3d(-pos.z,0,pos.x).normalize(),-Math.acos(pos.y));
 			Matrix4d matrix = MatrixUtils.createTransform(pos.scale(sky.getSize()),orientation,body.getSize());
 			s.loadTransformMatrix(matrix);
 			GL13.glActiveTexture(GL13.GL_TEXTURE0);
@@ -130,12 +131,13 @@ public class SkyRenderer {
 		int pointer = 0;
 		int count = 0;
 		float[] data = new float[MAX_INSTANCES*DATA_LENGTH];
+		double time = 1-ScalarUtils.clamp(sky.getSun()==null?0:sky.getSun().getPosition().y*5,0,1);
+		time*=time;
 		for(Star star : sky.getStars()) {
-			if(star.getRadius()<2.2)continue;
+			double radius = time*star.getRadius()*(1+Math.random()/5);
+			if(radius<MIN_STAR_SIZE)continue;
 			Vector3d pos = star.getPosition();
 			Vector3d colour = star.getColour();
-			double time = 1-ScalarUtils.clamp(sky.getSun().getPosition().y*5,0,1);
-			double radius = time*time*star.getRadius()*(1+Math.random()/5);
 			data[pointer++]=(float)pos.x;
 			data[pointer++]=(float)pos.y;
 			data[pointer++]=(float)pos.z;
@@ -145,9 +147,11 @@ public class SkyRenderer {
 			data[pointer++]=(float)radius;
 			count++;
 		}
-		Loader.updateVbo(vbo,data,buffer);
-		GL31.glDrawArraysInstanced(GL11.GL_POINTS,0,1,count);
-		Profiler.drawCalls++;
+		if(count!=0) {
+			Loader.updateVbo(vbo,data,buffer);
+			GL31.glDrawArraysInstanced(GL11.GL_POINTS,0,1,count);
+			Profiler.drawCalls++;
+		}
 		RenderHandler.unbind();
 		glDisable(GL_BLEND);
 		glDepthMask(true);

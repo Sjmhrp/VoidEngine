@@ -11,6 +11,8 @@ import sjmhrp.utils.GeometryUtils;
 
 public class CompoundShape extends CollisionShape {
 
+	private static final long serialVersionUID = 1250997425370556342L;
+	
 	ArrayList<ConvexShape> shapes = new ArrayList<ConvexShape>();
 	HashMap<CollisionShape,Transform> localPositions = new HashMap<CollisionShape,Transform>();
 

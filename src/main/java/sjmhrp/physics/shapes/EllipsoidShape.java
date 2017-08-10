@@ -7,6 +7,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class EllipsoidShape extends ConvexShape {
 
+	private static final long serialVersionUID = 2501477003008877165L;
+
 	public EllipsoidShape(double x, double y, double z) {
 		implicitShapeDimensions.set(x,y,z);
 	}

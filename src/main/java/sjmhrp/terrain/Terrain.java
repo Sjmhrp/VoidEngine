@@ -1,10 +1,7 @@
  package sjmhrp.terrain;
 
-import java.awt.image.BufferedImage;
+import java.io.Serializable;
 
-import javax.imageio.ImageIO;
-
-import sjmhrp.io.Log;
 import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector2d;
 import sjmhrp.linear.Vector3d;
@@ -15,38 +12,28 @@ import sjmhrp.render.Loader;
 import sjmhrp.textures.TerrainTexture;
 import sjmhrp.utils.GeometryUtils;
 
-public class Terrain {
-	
+public class Terrain implements Serializable {
+
+	private static final long serialVersionUID = -2138510576712211417L;
+
 	public static final int SIZE = 800;
-	
-	public static final int VERTEX_COUNT = 128;
-	private static final int MAX_HEIGHT = 40;
-	private static final int MAX_PIXEL_COUNT = 256 * 256 * 128;
+	public static final int MAX_HEIGHT = 40;
 	
 	private int x;
 	private int z;
-	private RawModel model;
+	transient private RawModel model;
 	private TerrainTexture texture;
+	transient private CollisionBody mesh;
 	private HeightGenerator gen;
-	private CollisionBody mesh;
 
-	private double[][] heights;
+	transient private double[][] heights;
 
-	public Terrain() {}
-
-	public Terrain(int gridX, int gridZ, TerrainTexture texture, String heightMap) {
-		this.texture = texture;
-		x = gridX*SIZE;
-		z = gridZ*SIZE;
-		model = generateTerrain(heightMap);
-	}
-	
 	public Terrain(int gridX, int gridZ, TerrainTexture texture, HeightGenerator gen) {
 		this.texture = texture;
 		x = gridX*SIZE;
 		z = gridZ*SIZE;
-		this.gen=gen;
-		model = generateTerrain();
+		this.gen = gen;
+		generateTerrain(gen);
 	}
 	
 	public double getX() {
@@ -93,36 +80,36 @@ public class Terrain {
 		return height;
 	}
 	
-	private RawModel generateTerrain(){
-		heights = new double[VERTEX_COUNT][VERTEX_COUNT];
-		int count = VERTEX_COUNT * VERTEX_COUNT;
+	private void generateTerrain(HeightGenerator gen){
+		heights = new double[gen.getVertexCount()][gen.getVertexCount()];
+		int count = gen.getVertexCount() * gen.getVertexCount();
 		double[] vertices = new double[count * 3];
 		double[] normals = new double[count * 3];
 		double[] textureCoords = new double[count*2];
-		int[] indices = new int[6*(VERTEX_COUNT-1)*(VERTEX_COUNT-1)];
+		int[] indices = new int[6*(gen.getVertexCount()-1)*(gen.getVertexCount()-1)];
 		int vertexPointer = 0;
-		for(int i=0;i<VERTEX_COUNT;i++){
-			for(int j=0;j<VERTEX_COUNT;j++){
+		for(int i=0;i<gen.getVertexCount();i++){
+			for(int j=0;j<gen.getVertexCount();j++){
 				double height = getHeight(j,i,gen);
 				heights[j][i] = height;
-				vertices[vertexPointer*3] = (double)j/((double)VERTEX_COUNT - 1) * SIZE;
+				vertices[vertexPointer*3] = (double)j/((double)gen.getVertexCount() - 1) * SIZE;
 				vertices[vertexPointer*3+1] = height;
-				vertices[vertexPointer*3+2] = (double)i/((double)VERTEX_COUNT - 1) * SIZE;
+				vertices[vertexPointer*3+2] = (double)i/((double)gen.getVertexCount() - 1) * SIZE;
 				Vector3d normal = getNormal(j,i,gen);
 				normals[vertexPointer*3] = normal.x;
 				normals[vertexPointer*3+1] = normal.y;
 				normals[vertexPointer*3+2] = normal.z;
-				textureCoords[vertexPointer*2] = (double)j/((double)VERTEX_COUNT - 1);
-				textureCoords[vertexPointer*2+1] = (double)i/((double)VERTEX_COUNT - 1);
+				textureCoords[vertexPointer*2] = (double)j/((double)gen.getVertexCount() - 1);
+				textureCoords[vertexPointer*2+1] = (double)i/((double)gen.getVertexCount() - 1);
 				vertexPointer++;
 			}
 		}
 		int pointer = 0;
-		for(int gz=0;gz<VERTEX_COUNT-1;gz++){
-			for(int gx=0;gx<VERTEX_COUNT-1;gx++){
-				int topLeft = (gz*VERTEX_COUNT)+gx;
+		for(int gz=0;gz<gen.getVertexCount()-1;gz++){
+			for(int gx=0;gx<gen.getVertexCount()-1;gx++){
+				int topLeft = (gz*gen.getVertexCount())+gx;
 				int topRight = topLeft + 1;
-				int bottomLeft = ((gz+1)*VERTEX_COUNT)+gx;
+				int bottomLeft = ((gz+1)*gen.getVertexCount())+gx;
 				int bottomRight = bottomLeft + 1;
 				indices[pointer++] = topLeft;
 				indices[pointer++] = bottomLeft;
@@ -139,63 +126,7 @@ public class Terrain {
 			wVertices[i*3+2]=vertices[i*3+2]+z;
 		}
 		mesh = new CollisionBody(new Vector3d(x,0,z),new StaticTriMesh(vertices,indices,new Transform(new Vector3d(x,0,z))));
-		return Loader.load(vertices, indices, normals, textureCoords);
-	}
-
-	private RawModel generateTerrain(String heightMap){
-		BufferedImage image = null;
-		try {
-			image = ImageIO.read(Class.class.getResourceAsStream("/res/textures/map/"+heightMap+".png"));
-		} catch(Exception e) {
-			Log.printError(e);
-		}
-		int VERTEX_COUNT = image.getHeight();
-		heights = new double[VERTEX_COUNT][VERTEX_COUNT];
-		int count = VERTEX_COUNT * VERTEX_COUNT;
-		double[] vertices = new double[count * 3];
-		double[] normals = new double[count * 3];
-		double[] textureCoords = new double[count*2];
-		int[] indices = new int[6*(VERTEX_COUNT-1)*(VERTEX_COUNT-1)];
-		int vertexPointer = 0;
-		for(int i=0;i<VERTEX_COUNT;i++){
-			for(int j=0;j<VERTEX_COUNT;j++){
-				double height = getHeight(j,i,image);
-				heights[j][i] = height;
-				vertices[vertexPointer*3] = (double)j/((double)VERTEX_COUNT - 1) * SIZE;
-				vertices[vertexPointer*3+1] = height;
-				vertices[vertexPointer*3+2] = (double)i/((double)VERTEX_COUNT - 1) * SIZE;
-				Vector3d normal = getNormal(j,i,image);
-				normals[vertexPointer*3] = normal.x;
-				normals[vertexPointer*3+1] = normal.y;
-				normals[vertexPointer*3+2] = normal.z;
-				textureCoords[vertexPointer*2] = (double)j/((double)VERTEX_COUNT - 1);
-				textureCoords[vertexPointer*2+1] = (double)i/((double)VERTEX_COUNT - 1);
-				vertexPointer++;
-			}
-		}
-		int pointer = 0;
-		for(int gz=0;gz<VERTEX_COUNT-1;gz++){
-			for(int gx=0;gx<VERTEX_COUNT-1;gx++){
-				int topLeft = (gz*VERTEX_COUNT)+gx;
-				int topRight = topLeft + 1;
-				int bottomLeft = ((gz+1)*VERTEX_COUNT)+gx;
-				int bottomRight = bottomLeft + 1;
-				indices[pointer++] = topLeft;
-				indices[pointer++] = bottomLeft;
-				indices[pointer++] = topRight;
-				indices[pointer++] = topRight;
-				indices[pointer++] = bottomLeft;
-				indices[pointer++] = bottomRight;
-			}
-		}
-		double[] wVertices = new double[vertices.length];
-		for(int i = 0; i < vertices.length/3; i++) {
-			wVertices[i*3]=vertices[i*3]+x;
-			wVertices[i*3+1]=vertices[i*3+1];
-			wVertices[i*3+2]=vertices[i*3+2]+z;
-		}
-		mesh = new CollisionBody(new Vector3d(x,0,z),new StaticTriMesh(vertices,indices,new Transform(new Vector3d(x,0,z))));
-		return Loader.load(vertices, indices, normals, textureCoords);
+		model = Loader.load(vertices,indices,normals,textureCoords);
 	}
 
 	public Vector3d getNormal(int x, int z, HeightGenerator gen) {
@@ -217,29 +148,14 @@ public class Terrain {
 		normal.normalize();
 		return normal;
 	}
-	
-	public Vector3d getNormal(int x, int z, BufferedImage image) {
-		double heightL = getHeight(x-1,z,image);
-		double heightR = getHeight(x+1,z,image);
-		double heightD = getHeight(x,z-1,image);
-		double heightU = getHeight(x,z+1,image);
-		Vector3d normal = new Vector3d(heightL-heightR,2f,heightD-heightU);
-		normal.normalize();
-		return normal;
-	}
 
 	private double getHeight(int x, int z, HeightGenerator h) {
 		return h.generateHeight(x,z);
 	}
-
-	private double getHeight(int x, int z, BufferedImage image) {
-		if(x<0 || x>=image.getHeight() || z<0 || z>=image.getWidth()) {
-			return 0;
-		}
-		double height = image.getRGB(x, z);
-		height += MAX_PIXEL_COUNT;
-		height /= MAX_PIXEL_COUNT;
-		height *= MAX_HEIGHT;
-		return height;
+	
+	public void reload() {
+		gen.reload();
+		generateTerrain(gen);
+		texture.reload();
 	}
 }

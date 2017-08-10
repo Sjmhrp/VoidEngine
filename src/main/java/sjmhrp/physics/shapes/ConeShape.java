@@ -7,6 +7,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class ConeShape extends ConvexShape {
 
+	private static final long serialVersionUID = -2420960660959803309L;
+	
 	private double sinTheta;
 
 	public ConeShape(double radius, double height) {

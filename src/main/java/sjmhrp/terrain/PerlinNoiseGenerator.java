@@ -4,17 +4,20 @@ import java.util.Random;
 
 public class PerlinNoiseGenerator extends HeightGenerator{
 
-	private static final double AMPLITUDE = 40;
+	private static final long serialVersionUID = -2169472997018228619L;
+	
 	private static final int OCTAVES = 3;
 	private static final double ROUGHNESS = 0.3f;
-
+	
+	private int gridX;
+	private int gridZ;
 	private Random r = new Random();
 	private int seed;
 
 	public PerlinNoiseGenerator(int x, int z, int s) {
 		this.seed = s;
-		this.gridX = x * (Terrain.VERTEX_COUNT-1);
-		this.gridZ = z * (Terrain.VERTEX_COUNT-1);
+		this.gridX = x * (getVertexCount()-1);
+		this.gridZ = z * (getVertexCount()-1);
 	}
 
 	public double generateHeight(int x, int z) {
@@ -22,7 +25,7 @@ public class PerlinNoiseGenerator extends HeightGenerator{
 		double d = (double) Math.pow(2, OCTAVES-1);
 		for(int i = 0; i < OCTAVES; i++) {
 			double freq = (double) (Math.pow(2, i)/d);
-			double amp = (double) (Math.pow(ROUGHNESS, i) * AMPLITUDE);
+			double amp = (double) (Math.pow(ROUGHNESS, i) * Terrain.MAX_HEIGHT);
 			total += getInterpolatedNoise((x+gridX)*freq,(z+gridZ)*freq)*amp;
 		}
 		return total;

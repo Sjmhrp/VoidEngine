@@ -1,9 +1,12 @@
 package sjmhrp.linear;
 
+import java.io.Serializable;
 import java.nio.FloatBuffer;
 
-public class Matrix3d {
-
+public class Matrix3d implements Serializable{
+	
+	private static final long serialVersionUID = 2512463293334728256L;
+	
 	public double m00,m01,m02,m10,m11,m12,m20,m21,m22;
 	
 	public Matrix3d() {}

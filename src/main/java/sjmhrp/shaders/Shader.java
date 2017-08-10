@@ -3,13 +3,18 @@ package sjmhrp.shaders;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import org.lwjgl.opengl.Display;
+
 import sjmhrp.debug.AABBShader;
 import sjmhrp.entity.EntityShader;
 import sjmhrp.flare.DownSampleShader;
 import sjmhrp.flare.FeatureShader;
 import sjmhrp.flare.FlareShader;
+import sjmhrp.gui.GUIShader;
+import sjmhrp.gui.text.FontShader;
 import sjmhrp.light.LightShader;
 import sjmhrp.light.SunLightShader;
+import sjmhrp.linear.Vector2d;
 import sjmhrp.post.GBufferShader;
 import sjmhrp.post.HBlurShader;
 import sjmhrp.post.SSAOShader;
@@ -27,24 +32,34 @@ public class Shader {
 
 	public Shader() {
 		shaders = new HashMap<String,ShaderProgram>();
-		addShader("EntityShader",new EntityShader());
-		addShader("TerrainShader",new TerrainShader());
-		addShader("SkyShader",new SkyShader());
-		addShader("CelestialShader",new CelestialShader());
-		addShader("StarShader",new StarShader());
-		addShader("GBufferShader",new GBufferShader());
-		addShader("LightShader",new LightShader());
-		addShader("SunLightShader",new SunLightShader());
-		addShader("ContrastShader",new PostShaderProgram("post/Generic","post/Contrast"));
-		addShader("VBlurShader",new VBlurShader());
-		addShader("HBlurShader",new HBlurShader());
-		addShader("SSAOShader",new SSAOShader());
-		addShader("SSAOBlurShader",new PostShaderProgram("post/Generic","post/SSAOBlur"));
-		addShader("DownSampleShader",new DownSampleShader());
-		addShader("FlareShader",new FlareShader());
-		addShader("FeatureShader",new FeatureShader());
-		addShader("TintShader",new TintShader());
-		addShader("AABBShader",new AABBShader());
+		addShader("Entity",new EntityShader());
+		addShader("Terrain",new TerrainShader());
+		addShader("Sky",new SkyShader());
+		addShader("Celestial",new CelestialShader());
+		addShader("Star",new StarShader());
+		addShader("GBuffer",new GBufferShader());
+		addShader("Light",new LightShader());
+		addShader("SunLight",new SunLightShader());
+		addShader("Contrast",new PostShaderProgram("post/Generic","post/Contrast"));
+		addShader("VBlur",new VBlurShader());
+		addShader("HBlur",new HBlurShader());
+		addShader("SSAO",new SSAOShader());
+		addShader("SSAOBlur",new PostShaderProgram("post/Generic","post/SSAOBlur"));
+		addShader("DownSample",new DownSampleShader());
+		addShader("Flare",new FlareShader());
+		addShader("Feature",new FeatureShader());
+		addShader("Tint",new TintShader());
+		addShader("FXAA",new PostShaderProgram("post/Generic","post/FXAA"){
+			@Override
+			public void getAllUniformLocations() {
+				start();
+				load2Vector(getUniformLocation("size"),new Vector2d(1d/Display.getWidth(),1d/Display.getHeight()));
+				stop();
+			}
+		});
+		addShader("AABB",new AABBShader());
+		addShader("GUI",new GUIShader());
+		addShader("Font",new FontShader());
 		initProjectionMatrices();
 		connectTextures();
 	}
@@ -64,12 +79,11 @@ public class Shader {
 
 	public void connectTextures() {
 		for(Entry<String,ShaderProgram> e : shaders.entrySet()) {
-			if(e.getValue() instanceof MultiTextureShaderProgram) {
-				ShaderProgram s = e.getValue();
-				s.start();
-				((MultiTextureShaderProgram)s).connectTextures();
-				s.stop();
-			}
+			if(!(e.getValue() instanceof MultiTextureShaderProgram))continue;
+			ShaderProgram s = e.getValue();
+			s.start();
+			((MultiTextureShaderProgram)s).connectTextures();
+			s.stop();
 		}
 	}
 
@@ -84,74 +98,86 @@ public class Shader {
 	}
 	
 	public EntityShader getEntityShader() {
-		return (EntityShader)getShader("EntityShader");
+		return (EntityShader)getShader("Entity");
 	}
 
 	public TerrainShader getTerrainShader() {
-		return (TerrainShader)getShader("TerrainShader");
+		return (TerrainShader)getShader("Terrain");
 	}
 	
 	public SkyShader getSkyShader() {
-		return (SkyShader)getShader("SkyShader");
+		return (SkyShader)getShader("Sky");
 	}
 	
 	public CelestialShader getCelestialShader() {
-		return (CelestialShader)getShader("CelestialShader");
+		return (CelestialShader)getShader("Celestial");
 	}
 
 	public StarShader getStarShader() {
-		return (StarShader)getShader("StarShader");
+		return (StarShader)getShader("Star");
 	}
 	
 	public LightShader getLightShader() {
-		return (LightShader)getShader("LightShader");
+		return (LightShader)getShader("Light");
 	}
 
 	public SunLightShader getSunLightShader() {
-		return (SunLightShader)getShader("SunLightShader");
+		return (SunLightShader)getShader("SunLight");
 	}
 	
 	public GBufferShader getGBufferShader() {
-		return (GBufferShader)getShader("GBufferShader");
+		return (GBufferShader)getShader("GBuffer");
 	}
 
 	public PostShaderProgram getContrastShader() {
-		return (PostShaderProgram)getShader("ContrastShader");
+		return (PostShaderProgram)getShader("Contrast");
 	}
 
 	public VBlurShader getVBlurShader() {
-		return (VBlurShader)getShader("VBlurShader");
+		return (VBlurShader)getShader("VBlur");
 	}
 	
 	public HBlurShader getHBlurShader() {
-		return (HBlurShader)getShader("HBlurShader");
+		return (HBlurShader)getShader("HBlur");
 	}
 	
 	public SSAOShader getSSAOShader() {
-		return (SSAOShader)getShader("SSAOShader");
+		return (SSAOShader)getShader("SSAO");
 	}
 
 	public PostShaderProgram getSSAOBlurShader() {
-		return (PostShaderProgram)getShader("SSAOBlurShader");
+		return (PostShaderProgram)getShader("SSAOBlur");
 	}
 
 	public DownSampleShader getDownSampleShader() {
-		return (DownSampleShader)getShader("DownSampleShader");
+		return (DownSampleShader)getShader("DownSample");
 	}
 	
 	public FlareShader getFlareShader() {
-		return (FlareShader)getShader("FlareShader");
+		return (FlareShader)getShader("Flare");
 	}
 	
 	public FeatureShader getFeatureShader() {
-		return (FeatureShader)getShader("FeatureShader");
+		return (FeatureShader)getShader("Feature");
 	}
 	
 	public TintShader getTintShader() {
-		return (TintShader)getShader("TintShader");
+		return (TintShader)getShader("Tint");
+	}
+	
+	public PostShaderProgram getFXAAShader() {
+		return (PostShaderProgram)getShader("FXAA");
 	}
 	
 	public AABBShader getAabbShader() {
-		return (AABBShader)getShader("AABBShader");
+		return (AABBShader)getShader("AABB");
+	}
+	
+	public GUIShader getGUIShader() {
+		return (GUIShader)getShader("GUI");
+	}
+	
+	public FontShader getFontShader() {
+		return (FontShader)getShader("Font");
 	}
 }

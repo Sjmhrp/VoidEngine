@@ -12,6 +12,8 @@ import sjmhrp.utils.MatrixUtils;
 
 public class WeldJoint extends Joint {
 
+	private static final long serialVersionUID = -7168973032428356534L;
+	
 	Vector3d localPoint1;
 	Vector3d localPoint2;
 	Matrix3d r1;

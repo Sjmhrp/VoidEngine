@@ -11,6 +11,8 @@ import sjmhrp.utils.MatrixUtils;
 
 public class SphericalJoint extends Joint {
 
+	private static final long serialVersionUID = -4822784126903109392L;
+	
 	Vector3d localPointA;
 	Vector3d localPointB;
 	Matrix3d rA;

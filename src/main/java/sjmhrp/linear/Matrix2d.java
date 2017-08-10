@@ -1,7 +1,11 @@
 package sjmhrp.linear;
 
-public class Matrix2d {
+import java.io.Serializable;
 
+public class Matrix2d implements Serializable{
+	
+	private static final long serialVersionUID = -8210100486273200709L;
+	
 	public double m00,m01,m10,m11;
 
 	public Matrix2d() {}

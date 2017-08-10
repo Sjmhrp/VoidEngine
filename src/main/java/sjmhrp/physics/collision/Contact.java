@@ -1,9 +1,13 @@
 package sjmhrp.physics.collision;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 import sjmhrp.utils.GeometryUtils;
 
-public class Contact {
+public class Contact implements Serializable {
+	
+	private static final long serialVersionUID = -7381187263508490745L;
 	
 	public final Vector3d localPointA = new Vector3d();
 	public final Vector3d localPointB = new Vector3d();

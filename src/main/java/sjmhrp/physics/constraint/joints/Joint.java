@@ -1,10 +1,13 @@
 package sjmhrp.physics.constraint.joints;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Transform;
 import sjmhrp.physics.dynamics.RigidBody;
 
-public abstract class Joint {
-
+public abstract class Joint implements Serializable {
+	
+	private static final long serialVersionUID = 218972928092203567L;
 	protected PositionCorrection positionCorrection;
 	protected RigidBody body1;
 	protected RigidBody body2;

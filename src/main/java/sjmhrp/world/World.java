@@ -1,5 +1,6 @@
 package sjmhrp.world;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -7,7 +8,7 @@ import java.util.Random;
 
 import sjmhrp.core.Globals;
 import sjmhrp.debug.DebugRenderer;
-import sjmhrp.io.StarHandler;
+import sjmhrp.io.ConfigHandler;
 import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
@@ -23,24 +24,27 @@ import sjmhrp.physics.dynamics.forces.Force;
 import sjmhrp.sky.SkyDome;
 import sjmhrp.sky.Sun;
 import sjmhrp.terrain.DefaultHeightGenerator;
+import sjmhrp.terrain.HeightMapGenerator;
 import sjmhrp.terrain.PerlinNoiseGenerator;
 import sjmhrp.terrain.Terrain;
 import sjmhrp.textures.TerrainTexture;
 import sjmhrp.utils.LimitedStack;
 
-public class World {
+public class World implements Serializable{
+
+	private static final long serialVersionUID = -3142869796981188644L;
 
 	SkyDome sky;
-	
+
 	ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>();
 	ArrayList<RigidBody> rigidBodies = new ArrayList<RigidBody>();
-	HashMap<CollisionBody,Transform> predictedTransforms = new HashMap<CollisionBody,Transform>();
-	LimitedStack<WorldState> states;
+	transient HashMap<CollisionBody,Transform> predictedTransforms = new HashMap<CollisionBody,Transform>();
+	transient LimitedStack<WorldState> states;
 	ArrayList<Terrain> heightField = new ArrayList<Terrain>();
 	ArrayList<Force> forces = new ArrayList<Force>();
 	ArrayList<Manifold> manifolds = new ArrayList<Manifold>();
 	ArrayList<Joint> joints = new ArrayList<Joint>();
-	ArrayList<Island> islands = new ArrayList<Island>();
+	transient ArrayList<Island> islands = new ArrayList<Island>();
 
 	Vector3d gravity = new Vector3d();
 
@@ -54,6 +58,7 @@ public class World {
 	}
 	
 	public void addSun() {
+		if(!hasSky())return;
 		Sun sun = new Sun();
 		sun.getPosition().set(0,1,0);
 		sun.getColour().set(1,1,1);
@@ -64,7 +69,8 @@ public class World {
 	}
 	
 	public void generateStars() {
-		sky.addStars(StarHandler.readStars("hip2.dat"));
+		if(!hasSky())return;
+		sky.loadStars("hip2");
 	}
 	
 	public void generateFlatTerrain(int size, TerrainTexture terrainTexture) {
@@ -72,7 +78,7 @@ public class World {
 			for(int j=-size;j<=size;j++) {
 				Terrain t = new Terrain(i,j,terrainTexture,new DefaultHeightGenerator());
 				heightField.add(t);
-				addBody(t.getMesh());
+				t.getMesh().setWorld(this);
 			}
 		}
 	}
@@ -86,15 +92,17 @@ public class World {
 			for(int j=-size;j<=size;j++) {
 				Terrain t = new Terrain(i,j,terrainTexture,new PerlinNoiseGenerator(i,j,seed));
 				heightField.add(t);
-				addBody(t.getMesh());
+				t.getMesh().setWorld(this);
 			}
 		}
 	}
 
-	public void generateTerrain(int size, String heightmapTexture, TerrainTexture terrainTexture) {
+	public void generateHeightMapTerrain(int size, String heightmapTexture, TerrainTexture terrainTexture) {
 		for(int i = -size; i<=size;i++) {
 			for(int j=-size;j<=size;j++) {
-				new Terrain(i,j,terrainTexture,heightmapTexture);
+				Terrain t = new Terrain(i,j,terrainTexture,new HeightMapGenerator(heightmapTexture));
+				heightField.add(t);
+				t.getMesh().setWorld(this);
 			}
 		}
 	}
@@ -128,6 +136,13 @@ public class World {
 
 	public ArrayList<Terrain> getTerrain() {
 		return heightField;
+	}
+	
+	public void reload() {
+		states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
+		predictedTransforms = new HashMap<CollisionBody,Transform>();
+		islands = new ArrayList<Island>();
+		sky.reloadStars();
 	}
 	
 	public void clear() {
@@ -181,7 +196,7 @@ public class World {
 
 	public void stepForward() {
 		if(hasSky())sky.tick(PhysicsEngine.getTimeStep());
-		if(Globals.debug)DebugRenderer.clearContacts();
+		if(ConfigHandler.getBoolean("debug"))DebugRenderer.clearContacts();
 		states.push(new WorldState(this,PhysicsEngine.tick));
 		applyForces();
 		integrateVelocities();
@@ -194,7 +209,7 @@ public class World {
 	}
 
 	public void stepBackward() {
-		if(Globals.debug)DebugRenderer.clearContacts();
+		if(ConfigHandler.getBoolean("debug"))DebugRenderer.clearContacts();
 		if(states.size()==0)return;
 		WorldState s = states.pop();
 		for(RigidBody b : rigidBodies) {
@@ -237,7 +252,7 @@ public class World {
 
 	void createIslands() {
 		islands.clear();
-		if(bodies.size()==0||(manifolds.size()==0&&joints.size()==0));
+		if(bodies.size()==0||(manifolds.size()==0&&joints.size()==0))return;
 		for(RigidBody b : rigidBodies) {
 			b.setInIsland(false);
 		}
@@ -302,6 +317,10 @@ public class World {
 
 	void broadPhase() {
 		Tree tree = new Tree();
+		ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>(this.bodies);
+		for(Terrain t : heightField) {
+			bodies.add(t.getMesh());
+		}
 		for(CollisionBody b : bodies) {
 			tree.add(getPredictedBoundingBox(b),b);
 		}
@@ -322,7 +341,7 @@ public class World {
 					}
 				}
 				if(f)continue;
-				manifolds.add(new Manifold(b,(RigidBody)o,getPredictedTransform(b),getPredictedTransform((RigidBody)o)));
+				manifolds.add(new Manifold(b,(CollisionBody)o,getPredictedTransform(b),getPredictedTransform((CollisionBody)o)));
 			}
 		}
 	}

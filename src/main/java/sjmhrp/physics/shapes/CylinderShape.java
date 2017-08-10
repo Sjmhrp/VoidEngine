@@ -8,6 +8,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class CylinderShape extends ConvexShape {
 
+	private static final long serialVersionUID = -3167063806837031435L;
+
 	public CylinderShape(double radius, double height) {
 		this(radius,radius,height);
 	}

@@ -1,7 +1,11 @@
 package sjmhrp.linear;
 
-public class Vector3d {
+import java.io.Serializable;
 
+public class Vector3d implements Serializable{
+	
+	private static final long serialVersionUID = -2600152262788331002L;
+	
 	public double x,y,z;
 
 	public Vector3d() {}

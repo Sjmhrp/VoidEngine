@@ -14,7 +14,9 @@ import static org.lwjgl.opengl.GL11.GL_GEQUAL;
 import static org.lwjgl.opengl.GL11.GL_KEEP;
 import static org.lwjgl.opengl.GL11.GL_LEQUAL;
 import static org.lwjgl.opengl.GL11.GL_ONE;
+import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_REPLACE;
+import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_STENCIL_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
@@ -50,11 +52,16 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.opengl.PixelFormat;
 
-import sjmhrp.core.Globals;
 import sjmhrp.debug.DebugRenderer;
 import sjmhrp.entity.Entity;
 import sjmhrp.entity.EntityShader;
 import sjmhrp.flare.FlareRenderer;
+import sjmhrp.gui.BasicGUIComponent;
+import sjmhrp.gui.GUIShader;
+import sjmhrp.gui.text.FontShader;
+import sjmhrp.gui.text.FontType;
+import sjmhrp.gui.text.GUIText;
+import sjmhrp.io.ConfigHandler;
 import sjmhrp.io.Log;
 import sjmhrp.light.Light;
 import sjmhrp.light.LightShader;
@@ -91,13 +98,14 @@ public class RenderHandler {
 			Display.setResizable(false);
 			Display.setDisplayMode(fullScreen?Display.getDesktopDisplayMode():new DisplayMode(width,height));
 			Display.setFullscreen(fullScreen);
+			Display.setVSyncEnabled(ConfigHandler.getBoolean("vsync"));
 			Display.create(new PixelFormat().withDepthBits(24));
 			enableCulling();
 			glEnable(GL_DEPTH_TEST);
 			glDepthFunc(GL_LEQUAL);
-			glViewport(0, 0, Display.getWidth(), Display.getHeight());
+			glViewport(0,0,Display.getWidth(),Display.getHeight());
 			Mouse.setGrabbed(true);
-			if (GLContext.getCapabilities().GL_ARB_depth_clamp)glEnable(GL_DEPTH_CLAMP);
+			if(GLContext.getCapabilities().GL_ARB_depth_clamp)glEnable(GL_DEPTH_CLAMP);
 			gBuffer = new Fbo(Display.getWidth(),Display.getHeight());
 			DebugRenderer.init();
 			Frustum.init();
@@ -121,28 +129,36 @@ public class RenderHandler {
 	}
 	
 	public static void renderWorld(World world, Camera camera, Shader shader) {
+		if(world==null) {
+			Display.sync(60);
+			Display.update();
+			return;
+		}
 		Profiler.drawCalls=0;
-		gBuffer.bindFrameBuffer();
-		clear();
-		glDisable(GL_BLEND);
-		renderEntities(shader.getEntityShader(),camera);
-		renderTerrain(shader.getTerrainShader(),world.getTerrain(),camera);
-		gBuffer.resolve(0,Post.albedo);
-		gBuffer.resolve(1,Post.normal);
-		doLighting(world,camera,shader);
-		SSAORenderer.renderSSAO(shader,camera);
-		Post.main.bindFrameBuffer();
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		gBuffer.resolveDepth(Post.main);
-		Post.main.bindFrameBuffer();
-		renderScene(shader.getGBufferShader());
-		if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera,shader);
-		if(Globals.debug)DebugRenderer.render(shader,world,camera);
-		Post.main.unbindFrameBuffer();
-		FlareRenderer.renderFlares(shader,camera);
-		Post.clear();
-		Post.addToPipeline(shader.getContrastShader());
-		if(PhysicsEngine.paused){
+		if(!PhysicsEngine.paused) {
+			gBuffer.bindFrameBuffer();
+			clear();
+			glDisable(GL_BLEND);
+			renderEntities(shader.getEntityShader(),camera);
+			if(world.getTerrain()!=null&&world.getTerrain().size()>0)renderTerrain(shader.getTerrainShader(),world.getTerrain(),camera);
+			gBuffer.resolve(0,Post.albedo);
+			gBuffer.resolve(1,Post.normal);
+			doLighting(world,camera,shader);
+			SSAORenderer.renderSSAO(shader,camera);
+			Post.main.bindFrameBuffer();
+			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+			gBuffer.resolveDepth(Post.main);
+			Post.main.bindFrameBuffer();
+			renderScene(shader.getGBufferShader());
+			if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera,shader);
+			if(ConfigHandler.getBoolean("debug"))DebugRenderer.render(shader,world,camera);
+			Post.main.unbindFrameBuffer();
+			FlareRenderer.renderFlares(shader,camera);
+			Post.clear();
+			if(ConfigHandler.getBoolean("fxaa"))Post.addToPipeline(shader.getFXAAShader());
+			Post.addToPipeline(shader.getContrastShader());
+		} else {
+			Post.clear();
 			shader.getTintShader().start();
 			shader.getTintShader().loadTint(new Vector3d(),0.7);
 			shader.getTintShader().stop();
@@ -151,6 +167,7 @@ public class RenderHandler {
 			Post.addToPipeline(shader.getTintShader());
 		}
 		Post.display(Post.main);
+		renderGUI(shader);
 		Display.sync(60);
 		Display.update();
 	}
@@ -168,6 +185,53 @@ public class RenderHandler {
 		GL30.glBindVertexArray(0);
 	}
 
+	static void renderGUI(Shader s) {
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_DEPTH_TEST);
+		s.getGUIShader().start();
+		for(BasicGUIComponent g : RenderRegistry.getGUI()) {
+			if(g.isActive())renderBasicGUIComponent(s.getGUIShader(),g);
+		}
+		s.getGUIShader().stop();
+		renderGUIText(s.getFontShader());
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+	}
+	
+	static void renderBasicGUIComponent(GUIShader s, BasicGUIComponent g) {
+		s.load(g);
+		GL30.glBindVertexArray(g.getModel().getVaoId());
+		GL20.glEnableVertexAttribArray(0);
+		GL13.glActiveTexture(GL13.GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D,g.getTexture());
+		glDrawArrays(GL_TRIANGLE_STRIP,0,g.getModel().getVertexCount());
+		Profiler.drawCalls++;
+		GL20.glDisableVertexAttribArray(0);
+		GL30.glBindVertexArray(0);
+	}
+	
+	static void renderGUIText(FontShader s) {
+		s.start();
+		for(Entry<FontType,ArrayList<GUIText>> e : RenderRegistry.getText().entrySet()) {
+			GL13.glActiveTexture(GL13.GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D,e.getKey().getTextureAtlas());
+			for(GUIText g : e.getValue()) {
+				if(!g.isActive())continue;
+				s.load(g);
+				GL30.glBindVertexArray(g.getModel().getVaoId());
+				GL20.glEnableVertexAttribArray(0);
+				GL20.glEnableVertexAttribArray(1);
+				glDrawArrays(GL_TRIANGLES,0,g.getVertexCount());
+				Profiler.drawCalls++;
+				GL20.glDisableVertexAttribArray(0);
+				GL20.glDisableVertexAttribArray(1);
+				GL30.glBindVertexArray(0);
+			}
+		}
+		s.stop();
+	}
+	
 	static void renderScene(GBufferShader s) {
 		s.start();
 		glDepthMask(false);

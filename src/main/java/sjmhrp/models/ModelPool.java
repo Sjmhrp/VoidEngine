@@ -15,9 +15,10 @@ public class ModelPool {
 
 	public static RawModel getModel(String name) {
 		RawModel m = pool.get(name);
-		if(m!=null)return m;
-		m = OBJHandler.parseOBJ(name);
-		pool.put(name,m);
+		if(m==null) {
+			m = OBJHandler.parseOBJ(name);
+			pool.put(name,m);
+		}
 		return m;
 	}
 }

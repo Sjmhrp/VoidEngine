@@ -20,35 +20,25 @@ import org.lwjgl.opengl.GL30;
 
 import sjmhrp.linear.Vector3d;
 import sjmhrp.render.Loader;
+import sjmhrp.utils.ColourUtils;
 
 public class TexturePool {
 	
 	static HashMap<String,ModelTexture> pool = new HashMap<String,ModelTexture>();
-	static HashMap<String,Vector3d> colourNames = new HashMap<String,Vector3d>();
-
-	static {addColourName("red",new Vector3d(1,0,0));
-			addColourName("green",new Vector3d(0,1,0));
-			addColourName("blue",new Vector3d(0,0,1));
-			addColourName("cyan",new Vector3d(0,0.635,0.91));
-			addColourName("lime",new Vector3d(0.133,0.694,0.298));
-	};
-	
-	public static void addColourName(String name, Vector3d colour) {
-		colourNames.put(name,colour);
-	}
 	
 	public static ModelTexture getTexture(String name) {
 		ModelTexture t = pool.get(name);
-		if(t!=null)return t;
-		t = new ModelTexture(Loader.loadTexture(name));
-		pool.put(name,t);
+		if(t==null){
+			t = new ModelTexture(Loader.loadTexture(name),name);
+			pool.put(name,t);
+		}
 		return t;
 	}
 
 	public static ModelTexture getTexture(String name, String normalMap) {
 		ModelTexture t = pool.get(name);
 		if(t==null) {
-			t = new ModelTexture(Loader.loadTexture(name));
+			t = new ModelTexture(Loader.loadTexture(name),name);
 			pool.put(name,t);
 		}
 		if(t.getNormalID()==0)t.loadNormalMap(Loader.loadTexture("map/"+normalMap));
@@ -58,7 +48,7 @@ public class TexturePool {
 	public static ModelTexture getTexture(String name, String normalMap, String specularMap) {
 		ModelTexture t = pool.get(name);
 		if(t==null) {
-			t = new ModelTexture(Loader.loadTexture(name));
+			t = new ModelTexture(Loader.loadTexture(name),name);
 			pool.put(name,t);
 		}
 		if(t.getNormalID()==0)t.loadNormalMap(Loader.loadTexture("map/"+normalMap));
@@ -80,14 +70,14 @@ public class TexturePool {
 	        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 	        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-	        t = new ModelTexture(texture);
+	        t = new ModelTexture(texture,colour.x+";"+colour.y+";"+colour.z);
 			pool.put(c,t);
 		}
 		return t;
 	}
 
 	public static ModelTexture getColour(String colour) {
-		Vector3d c = colourNames.get(colour);
+		Vector3d c = ColourUtils.getColour(colour);
 		if(c==null)return null;
 		return getColour(c);
 	}

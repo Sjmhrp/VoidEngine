@@ -7,6 +7,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class BoxShape extends ConvexShape{
 	
+	private static final long serialVersionUID = -4565044717259974755L;
+
 	public BoxShape(Vector3d extent) {
 		implicitShapeDimensions.set(Vector3d.scale(localScaling,extent));
 		implicitShapeDimensions.sub(new Vector3d(getMargin()));

@@ -9,6 +9,7 @@ import org.lwjgl.opengl.Display;
 import sjmhrp.event.EventListener;
 import sjmhrp.event.KeyHandler;
 import sjmhrp.event.KeyListener;
+import sjmhrp.gui.GUIHandler;
 import sjmhrp.world.World;
 
 public class PhysicsEngine {
@@ -24,13 +25,14 @@ public class PhysicsEngine {
 		timeStep=dt/1000000000;
 		ArrayList<KeyListener> ls = new ArrayList<KeyListener>();
 		for(EventListener e : listeners) {
-			if(e instanceof KeyListener&&!(paused&&e.canPause()))ls.add((KeyListener)e);
+			if(e instanceof KeyListener)ls.add((KeyListener)e);
 		}
 		KeyHandler.tick(ls);
 		for(EventListener e : listeners) {
-			if(!paused||!e.canPause())e.tick();
+			e.tick();
 		}
-		if(!paused&&!Keyboard.isKeyDown(Keyboard.KEY_P)) {
+		GUIHandler.tick();
+		if(!paused) {
 			for(World world : worlds) {
 				if(!Keyboard.isKeyDown(Keyboard.KEY_Q)) {
 					world.stepForward();
@@ -45,11 +47,20 @@ public class PhysicsEngine {
 	public static double getTimeStep() {
 		return timeStep;
 	}
+
+	public static double getFPS() {
+		return Math.min(Math.round(10/timeStep)/10d,60);
+	}
+	
+	public static ArrayList<World> getWorlds() {
+		return worlds;
+	}
 	
 	public static void pause() {
 		Mouse.setGrabbed(paused);
 		paused=!paused;
 		if(paused)Mouse.setCursorPosition(Display.getWidth()/2,Display.getHeight()/2);
+		GUIHandler.switchToScreen(paused?"pause":"main");
 	}
 	
 	public static void registerWorld(World world) {

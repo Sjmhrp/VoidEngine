@@ -7,6 +7,8 @@ import sjmhrp.physics.collision.broadphase.AABB;
 
 public class CapsuleShape extends ConvexShape {
 
+	private static final long serialVersionUID = 5745793098498253367L;
+
 	public CapsuleShape(double radius, double height) {
 		implicitShapeDimensions.set(radius,height/2d,radius);
 		setMargin(radius);

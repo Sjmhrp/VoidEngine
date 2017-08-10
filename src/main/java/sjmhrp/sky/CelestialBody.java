@@ -1,9 +1,13 @@
 package sjmhrp.sky;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 
-public abstract class CelestialBody {
-
+public abstract class CelestialBody implements Serializable{
+	
+	private static final long serialVersionUID = 933492960397484548L;
+	
 	protected final Vector3d position = new Vector3d();
 	protected final Vector3d colour = new Vector3d();
 	protected double size;

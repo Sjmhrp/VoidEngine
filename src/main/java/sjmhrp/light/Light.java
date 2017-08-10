@@ -1,10 +1,14 @@
 package sjmhrp.light;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 import sjmhrp.render.RenderRegistry;
 
-public class Light {
+public class Light implements Serializable {
 	
+	private static final long serialVersionUID = -8059310806061877049L;
+
 	static double minLight = 51.2;
 	
 	private Vector3d pos;
@@ -22,6 +26,10 @@ public class Light {
 		this.colour = colour;
 		this.attenuation = at;
 		RenderRegistry.registerLight(this);
+	}
+	
+	public void remove() {
+		RenderRegistry.removeLight(this);
 	}
 	
 	public Vector3d getAttenuation() {

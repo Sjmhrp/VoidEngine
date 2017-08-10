@@ -40,6 +40,10 @@ public class Entity {
 		textureIndex = index;
 	}
 
+	public void remove() {
+		RenderRegistry.removeEntity(this);
+	}
+	
 	public Entity loadNormalMap(String map) {
 		if(!model.hasNormalMap())model.loadNormalMap(Loader.loadTexture("map/"+map));
 		return this;

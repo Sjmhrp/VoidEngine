@@ -1,9 +1,13 @@
 package sjmhrp.sky;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 
-public class Star {
-
+public class Star implements Serializable{
+	
+	private static final long serialVersionUID = 8451095873309039229L;
+	
 	private final Vector3d position = new Vector3d();
 	private final Vector3d colour = new Vector3d();
 	private double radius;

@@ -1,9 +1,13 @@
 package sjmhrp.physics.collision.broadphase;
 
+import java.io.Serializable;
+
 import sjmhrp.linear.Vector3d;
 
-public class AABB {
-
+public class AABB implements Serializable {
+	
+	private static final long serialVersionUID = 1798204417644343551L;
+	
 	private Vector3d min = new Vector3d();
 	private Vector3d max = new Vector3d();
 	private Vector3d center = new Vector3d();

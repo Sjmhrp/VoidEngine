@@ -1,6 +1,6 @@
 package sjmhrp.event;
 
-public interface KeyListener extends EventListener{
+public interface KeyListener extends EventListener {
 
 	void keyPressed(int key);
 	
