@@ -7,6 +7,7 @@ import sjmhrp.linear.Transform;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
 import sjmhrp.physics.collision.broadphase.Tree;
+import sjmhrp.physics.dynamics.Ray;
 
 public class StaticTriMesh extends CollisionShape{
 
@@ -44,6 +45,14 @@ public class StaticTriMesh extends CollisionShape{
 		return triangles;
 	}
 
+	public ArrayList<TriangleShape> query(Ray ray) {
+		ArrayList<TriangleShape> triangles = new ArrayList<TriangleShape>();
+		for(Object o : tree.query(ray)) {
+			triangles.add((TriangleShape)o);
+		}
+		return triangles;
+	}
+	
 	@Override
 	public AABB getBoundingBox(Transform t) {
 		return tree.root.getBoundingBox();

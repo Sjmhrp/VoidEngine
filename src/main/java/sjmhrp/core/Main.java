@@ -2,6 +2,7 @@ package sjmhrp.core;
 
 import org.lwjgl.opengl.Display;
 
+import sjmhrp.debug.DebugRenderer;
 import sjmhrp.flare.FlareRenderer;
 import sjmhrp.gui.GUIHandler;
 import sjmhrp.gui.text.GUIText;
@@ -22,7 +23,7 @@ import sjmhrp.world.World;
 public class Main {
 
 	public static final String TITLE = "Void Engine";
-	public static final String VERSION = "1.0.3";
+	public static final String VERSION = "1.0.4";
 	public static final int[] SIZE = {720,480};	
 
 	static Camera camera = new Camera(new Vector3d(375,33,461));
@@ -76,14 +77,19 @@ public class Main {
 			double dt = System.nanoTime()-time;
 			time = System.nanoTime();
 			PhysicsEngine.step(dt);
-			fps.remove();
-			fps = new GUIText(String.valueOf(PhysicsEngine.getFPS()));
-			fps.setFontSize(3).addAttribute("all").setOffset(0.88,0.9);
+			updateFPS();
+			if(ConfigHandler.getBoolean("debug"))DebugRenderer.raycast(camera,world);
 			RenderHandler.renderWorld(world,camera,shader);
 		}
 		exit();
 	}
 
+	static void updateFPS() {
+		fps.remove();
+		fps = new GUIText(String.valueOf(PhysicsEngine.getFPS()));
+		fps.setFontSize(3).addAttribute("all").setOffset(0.88,0.9);
+	}
+	
 	public static void exit() {
 		Loader.cleanUp();
 		shader.cleanUp();

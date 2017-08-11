@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 import sjmhrp.linear.Vector3d;
+import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.utils.GeometryUtils;
 
 public class Tree implements Serializable {
@@ -30,6 +31,10 @@ public class Tree implements Serializable {
 		return root.query(box);
 	}
 
+	public ArrayList<Object> query(Ray ray) {
+		return root.query(ray);
+	}
+	
 	public void translate(Vector3d t) {
 		root.translate(t);
 	}

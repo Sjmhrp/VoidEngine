@@ -1,5 +1,8 @@
 package sjmhrp.debug;
 
+import static java.lang.Math.cos;
+import static java.lang.Math.sin;
+import static java.lang.Math.toRadians;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.glBindTexture;
@@ -24,6 +27,8 @@ import sjmhrp.models.ModelPool;
 import sjmhrp.models.TexturedModel;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.collision.Manifold;
+import sjmhrp.physics.collision.RaycastResult;
+import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.physics.shapes.CompoundShape;
 import sjmhrp.physics.shapes.ConvexShape;
@@ -79,6 +84,16 @@ public class DebugRenderer {
 		contacts = c;
 	}
 
+	public static void raycast(Camera camera, World world) {
+		Vector3d dir = new Vector3d();
+		dir.x=sin(toRadians(camera.getOrientation().y));
+		dir.y=-sin(toRadians(camera.getOrientation().x));
+		dir.z=-cos(toRadians(camera.getOrientation().y));
+		Ray ray = new Ray(camera.getPosition(),dir,50);
+		RaycastResult result = world.raycast(ray);
+		if(result.collides())addContact(result.getHitPoint());
+	}
+	
 	public static void render(Shader shader, World world, Camera camera) {
 		renderAABB(shader.getAabbShader(),world,camera);
 		renderContacts(shader.getEntityShader(),camera);

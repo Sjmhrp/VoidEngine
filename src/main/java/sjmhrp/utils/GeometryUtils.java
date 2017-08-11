@@ -3,6 +3,7 @@ package sjmhrp.utils;
 import sjmhrp.linear.Vector2d;
 import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.physics.dynamics.Ray;
 
 public class GeometryUtils {
 
@@ -98,6 +99,24 @@ public class GeometryUtils {
 		return true;
 	}
 
+	public static boolean intersects(Ray r, AABB a) {
+		double xmin,xmax,ymin,ymax,zmin,zmax;
+		xmin = (a.getBounds()[r.getSign()[0]].x-r.getOrigin().x)*r.getInvdir().x;
+		xmax = (a.getBounds()[1-r.getSign()[0]].x-r.getOrigin().x)*r.getInvdir().x;
+		ymin = (a.getBounds()[r.getSign()[1]].y-r.getOrigin().y)*r.getInvdir().y;
+		ymax = (a.getBounds()[1-r.getSign()[1]].y-r.getOrigin().y)*r.getInvdir().y;
+		if (xmin>ymax||ymin>xmax)return false; 
+		if (ymin>xmin)xmin=ymin;
+		if (ymax<xmax)xmax=ymax; 
+		zmin = (a.getBounds()[r.getSign()[2]].z-r.getOrigin().z)*r.getInvdir().z;
+		zmax = (a.getBounds()[1-r.getSign()[2]].z-r.getOrigin().z)*r.getInvdir().z;
+		if (xmin>zmax||zmin>xmax)return false; 
+		if (zmin>xmin)xmin=zmin; 
+		if (zmax<xmax)xmax=zmax;
+		if(xmin<0&&xmax<0)return false;
+		return true; 
+	}
+	
 	public static double barycentric(Vector3d p1, Vector3d p2, Vector3d p3, Vector2d pos) {
 		double det = (p2.z - p3.z) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.z - p3.z);
 		double l1 = ((p2.z - p3.z) * (pos.x - p3.x) + (p3.x - p2.x) * (pos.y - p3.z)) / det;

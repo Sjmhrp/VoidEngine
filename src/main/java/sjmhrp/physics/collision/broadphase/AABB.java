@@ -71,8 +71,12 @@ public class AABB implements Serializable {
 		return max;
 	}
 
+	public Vector3d[] getBounds() {
+		return new Vector3d[] {min,max};
+	}
+	
 	@Override
 	public String toString() {
-		return min+";"+max;
+		return "AABB["+min+", "+max+"]";
 	}
 }

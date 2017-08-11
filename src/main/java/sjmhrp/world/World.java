@@ -14,11 +14,13 @@ import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.collision.CollisionHandler;
 import sjmhrp.physics.collision.Manifold;
+import sjmhrp.physics.collision.RaycastResult;
 import sjmhrp.physics.collision.broadphase.AABB;
 import sjmhrp.physics.collision.broadphase.Tree;
 import sjmhrp.physics.constraint.joints.Joint;
 import sjmhrp.physics.dynamics.CollisionBody;
 import sjmhrp.physics.dynamics.Island;
+import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.physics.dynamics.forces.Force;
 import sjmhrp.sky.SkyDome;
@@ -192,6 +194,25 @@ public class World implements Serializable{
 	public void addForce(Force f) {
 		forces.add(f);
 		f.setWorld(this);
+	}
+
+	public RaycastResult raycast(Ray ray) {
+		Tree tree = new Tree();
+		ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>(this.bodies);
+		for(Terrain t : heightField) {
+			bodies.add(t.getMesh());
+		}
+		for(CollisionBody b : bodies) {
+			tree.add(getPredictedBoundingBox(b),b);
+		}
+		RaycastResult result = null;
+		for(Object body : tree.query(ray)) {
+			if(body instanceof CollisionBody) {
+				RaycastResult r = CollisionHandler.raycast(ray,(CollisionBody)body);
+				if((result==null||r.getDistance()<result.getDistance())&&r.collides())result=r;
+			}
+		}
+		return result==null?new RaycastResult():result;
 	}
 
 	public void stepForward() {

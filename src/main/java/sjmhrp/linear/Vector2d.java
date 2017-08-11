@@ -90,6 +90,16 @@ public class Vector2d implements Serializable{
 		return new Vector2d(this).getUnit();
 	}
 	
+	public Vector2d reciprocal() {
+		x=1d/x;
+		y=1d/y;
+		return this;
+	}
+	
+	public Vector2d getReciprocal() {
+		return new Vector2d(this).reciprocal();
+	}
+	
 	public double dot(Vector2d v) {
 		return x*v.x+y*v.y;
 	}

@@ -49,6 +49,10 @@ public class Camera implements KeyListener {
 		return position;
 	}
 	
+	public Vector3d getOrientation() {
+		return orientation;
+	}
+	
 	public Matrix4d getViewMatrix() {
 		return viewMatrix;
 	}

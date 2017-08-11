@@ -49,6 +49,6 @@ public class Contact implements Serializable {
 
 	@Override
 	public String toString() {
-		return "[A: "+globalPointA+", B: "+globalPointB+", Normal: "+normal+", Depth: "+depth+", Tangent1: "+tangent1+", Tangent2: "+tangent2+"]";
+		return "Contact[A: "+globalPointA+", B: "+globalPointB+", Normal: "+normal+", Depth: "+depth+", Tangent1: "+tangent1+", Tangent2: "+tangent2+"]";
 	}
 }

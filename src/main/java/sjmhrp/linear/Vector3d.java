@@ -97,6 +97,17 @@ public class Vector3d implements Serializable{
 		return new Vector3d(this).normalize();
 	}
 	
+	public Vector3d reciprocal() {
+		x=1d/x;
+		y=1d/y;
+		z=1d/z;
+		return this;
+	}
+	
+	public Vector3d getReciprocal() {
+		return new Vector3d(this).reciprocal();
+	}
+	
 	public double dot(Vector3d v) {
 		return x*v.x+y*v.y+z*v.z;
 	}

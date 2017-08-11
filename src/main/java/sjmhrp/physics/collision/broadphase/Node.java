@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 import sjmhrp.linear.Vector3d;
+import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.utils.GeometryUtils;
 
 public class Node implements Serializable {
@@ -32,6 +33,16 @@ public class Node implements Serializable {
 			if(isLeaf()&&boundingBox!=box)o.add(data);
 			if(left!=null)o.addAll(left.query(box));
 			if(right!=null)o.addAll(right.query(box));
+		}
+		return o;
+	}
+	
+	public ArrayList<Object> query(Ray ray) {
+		ArrayList<Object> o = new ArrayList<Object>();
+		if(GeometryUtils.intersects(ray,boundingBox)) {
+			if(isLeaf())o.add(data);
+			if(left!=null)o.addAll(left.query(ray));
+			if(right!=null)o.addAll(right.query(ray));
 		}
 		return o;
 	}

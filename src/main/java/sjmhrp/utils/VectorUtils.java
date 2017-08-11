@@ -10,6 +10,10 @@ public class VectorUtils {
 		return Vector3d.sub(a,b).length();
 	}
 
+	public static double getAngle(Vector3d a, Vector3d b) {
+		return Math.acos(a.getUnit().dot(b.getUnit()));
+	}
+	
 	public static Vector3d minAxis(Vector3d v) {
 		return getAxis(leastSignificantComponent(v));
 	}

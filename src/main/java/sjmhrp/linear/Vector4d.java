@@ -104,6 +104,18 @@ public class Vector4d implements Serializable{
 		return new Vector4d(this).normalize();
 	}
 	
+	public Vector4d reciprocal() {
+		x=1d/x;
+		y=1d/y;
+		z=1d/z;
+		w=1d/w;
+		return this;
+	}
+	
+	public Vector4d getReciprocal() {
+		return new Vector4d(this).reciprocal();
+	}
+	
 	public double dot(Vector4d v) {
 		return x*v.x+y*v.y+z*v.z+w*v.w;
 	}
