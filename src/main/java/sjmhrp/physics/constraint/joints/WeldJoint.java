@@ -1,14 +1,16 @@
 package sjmhrp.physics.constraint.joints;
 
+import static java.lang.Math.sqrt;
+
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Quaternion;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.utils.MatrixUtils;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class WeldJoint extends Joint {
 
@@ -24,6 +26,9 @@ public class WeldJoint extends Joint {
 	Vector3d impulseRot = new Vector3d();
 	Vector3d biasTrans = new Vector3d();
 	Vector3d biasRot = new Vector3d();
+	Vector3d offsetTrans = new Vector3d();
+	Vector3d offsetRot = new Vector3d();
+	
 	Quaternion initialDifference;
 
 	public WeldJoint(RigidBody b1, RigidBody b2, Vector3d anchorPoint) {
@@ -31,8 +36,8 @@ public class WeldJoint extends Joint {
 		localPoint1 = Transform.transform(transform1.getInverse(),anchorPoint);
 		localPoint2 = Transform.transform(transform2.getInverse(),anchorPoint);
 		initialDifference = Quaternion.mul(transform2.orientation,transform1.orientation.getInverse());
-		initialDifference.normalize();
 		initialDifference.invert();
+		initialDifference.normalize();
 		positionCorrection = PositionCorrection.NON_LINEAR_GAUSS_SEIDEL;
 	}
 
@@ -51,11 +56,15 @@ public class WeldJoint extends Joint {
 		effectiveMassRot = new Matrix3d(body1.getInvInertiaMatrix());
 		effectiveMassRot.add(body2.getInvInertiaMatrix());
 		effectiveMassRot.invert();
-		if(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE) {
+		if(isBreakable()||(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE)) {
 			Quaternion dq = Quaternion.mul(transform2.orientation,transform1.orientation.getInverse());
-			Quaternion error = Quaternion.mul(dq,initialDifference);
-			biasTrans = Vector3d.sub(Vector3d.add(transform2.position,rB),Vector3d.add(transform1.position,rA)).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
-			biasRot = Matrix3d.transform(effectiveMassRot,error.getVector()).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
+			dq.normalize();
+			offsetTrans = Vector3d.sub(Vector3d.add(transform2.position,rB),Vector3d.add(transform1.position,rA));
+			offsetRot = Quaternion.mul(dq,initialDifference).getVector();
+		}
+		if(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE) {
+			biasTrans = Vector3d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetTrans);
+			biasRot = Vector3d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetRot);
 		}
 		if(!Globals.warmstart)return;
 		applyImpulseTrans(impulseTrans);
@@ -110,13 +119,34 @@ public class WeldJoint extends Joint {
 		r2 = MatrixUtils.createSkewSymmetric(rB);
 		Matrix3d IrA = Matrix3d.mul(r1,Matrix3d.mul(body1.getInvInertiaMatrix(),r1.getTranspose()));
 		Matrix3d IrB = Matrix3d.mul(r2,Matrix3d.mul(body2.getInvInertiaMatrix(),r2.getTranspose()));
+		Quaternion dq = Quaternion.mul(body2.getOrientation(),body1.getOrientation().getInverse()).normalize();
 		effectiveMassTrans = new Matrix3d(IrA);
 		effectiveMassTrans.add(IrB);
 		effectiveMassTrans.add(new Matrix3d(body1.getInvMass()+body2.getInvMass()));
 		effectiveMassTrans.invert();
+		effectiveMassRot = new Matrix3d(body1.getInvInertiaMatrix()).add(body2.getInvInertiaMatrix());
+		effectiveMassRot.invert();
+		Quaternion error = Quaternion.mul(dq,initialDifference).normalize();
 		Vector3d lambdaTrans = Vector3d.sub(Vector3d.add(body1.getPosition(),rA),Vector3d.add(body2.getPosition(),rB));
+		Vector3d lambdaRot = error.getVector().scale(error.w);
 		effectiveMassTrans.transform(lambdaTrans);
+		effectiveMassRot.transform(lambdaRot);
 		body1.addPosition(Vector3d.scale(-body1.getInvMass(),lambdaTrans));
 		body2.addPosition(Vector3d.scale(body2.getInvMass(),lambdaTrans));
+		body1.rotate(Matrix3d.transform(Matrix3d.mul(body1.getInvInertiaMatrix(),r1),lambdaTrans).negate());
+		body2.rotate(Matrix3d.transform(Matrix3d.mul(body2.getInvInertiaMatrix(),r2),lambdaTrans));
+		body1.rotate(Matrix3d.transform(body1.getInvInertiaMatrix(),lambdaRot));
+		body2.rotate(Matrix3d.transform(body2.getInvInertiaMatrix(),lambdaRot.getNegative()));
+	}
+
+	@Override
+	public void resetImpulse() {
+		impulseTrans.zero();
+		impulseRot.zero();
+	}
+
+	@Override
+	public boolean isBroken() {
+		return isBreakable()&&sqrt(offsetTrans.lengthSquared()+offsetRot.lengthSquared())>breakingStrength;
 	}
 }

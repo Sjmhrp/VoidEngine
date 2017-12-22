@@ -1,13 +1,13 @@
 package sjmhrp.physics.constraint.joints;
 
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.utils.MatrixUtils;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class SphericalJoint extends Joint {
 
@@ -20,6 +20,7 @@ public class SphericalJoint extends Joint {
 	Matrix3d effectiveMass;
 	Vector3d impulse = new Vector3d();
 	Vector3d bias = new Vector3d();
+	Vector3d offset = new Vector3d();
 
 	public SphericalJoint(RigidBody b1, RigidBody b2, Vector3d point) {
 		super(b1, b2);
@@ -40,8 +41,11 @@ public class SphericalJoint extends Joint {
 		effectiveMass.add(IrB);
 		effectiveMass.add(new Matrix3d(body1.getInvMass()+body2.getInvMass()));
 		effectiveMass.invert();
+		if(isBreakable()||(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE)) {
+			offset = new Vector3d(Vector3d.sub(Vector3d.add(transform2.position,r2),Vector3d.add(transform1.position,r1)));
+		}
 		if(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE) {
-			bias = new Vector3d(Vector3d.sub(Vector3d.add(transform2.position,r2),Vector3d.add(transform1.position,r1))).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
+			bias = Vector3d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offset);
 		}
 		if(!Globals.warmstart)return;
 		body1.addLinearVelocity(Vector3d.scale(-body1.getInvMass(),impulse));
@@ -88,5 +92,15 @@ public class SphericalJoint extends Joint {
 		body2.addPosition(Vector3d.scale(body2.getInvMass(),lambda));
 		body1.rotate(Matrix3d.transform(Matrix3d.mul(body1.getInvInertiaMatrix(),rA.getTranspose()),lambda));
 		body2.rotate(Matrix3d.transform(Matrix3d.mul(body2.getInvInertiaMatrix(),rB.getTranspose()),lambda).negate());
+	}
+
+	@Override
+	public void resetImpulse() {
+		impulse.zero();
+	}
+
+	@Override
+	public boolean isBroken() {
+		return isBreakable()&&offset.length()>breakingStrength;
 	}
 }

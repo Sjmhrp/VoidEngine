@@ -8,7 +8,11 @@ public abstract class Force implements Serializable {
 	
 	private static final long serialVersionUID = 3248502653306635194L;
 	
-	World world;
+	protected World world;
+	
+	public void destroy() {
+		world.removeForce(this);
+	}
 	
 	public abstract boolean update();
 	

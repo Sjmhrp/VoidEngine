@@ -1,6 +1,6 @@
 package sjmhrp.physics.collision.narrowphase;
 
-import sjmhrp.linear.Vector3d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class Triangle {
 

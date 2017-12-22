@@ -1,11 +1,11 @@
 package sjmhrp.physics.shapes;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
-public class BoxShape extends ConvexShape{
+public class BoxShape extends ConvexShape {
 	
 	private static final long serialVersionUID = -4565044717259974755L;
 
@@ -80,5 +80,10 @@ public class BoxShape extends ConvexShape{
 	@Override
 	public Matrix4d getSkewMatrix() {
 		return new Matrix4d(getExtentWithMargin());
+	}
+
+	public double getVolume() {
+		Vector3d m = getExtentWithMargin();
+		return 8*m.x*m.y*m.z;
 	}
 }

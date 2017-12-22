@@ -1,103 +1,48 @@
 package sjmhrp.core;
 
-import org.lwjgl.opengl.Display;
+import org.lwjgl.LWJGLException;
 
-import sjmhrp.debug.DebugRenderer;
-import sjmhrp.flare.FlareRenderer;
-import sjmhrp.gui.GUIHandler;
-import sjmhrp.gui.text.GUIText;
 import sjmhrp.io.ConfigHandler;
 import sjmhrp.io.SaveHandler;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
-import sjmhrp.post.Post;
-import sjmhrp.render.Loader;
 import sjmhrp.render.RenderHandler;
-import sjmhrp.render.RenderRegistry;
-import sjmhrp.render.SSAORenderer;
-import sjmhrp.shaders.Shader;
-import sjmhrp.textures.TerrainTexture;
-import sjmhrp.view.Camera;
-import sjmhrp.world.World;
+import sjmhrp.render.debug.DebugRenderer;
+import sjmhrp.render.gui.GUIHandler;
+import sjmhrp.render.view.Camera;
+import sjmhrp.utils.linear.Vector3d;
+import sjmhrp.world.level.DemoLevel;
 
 public class Main {
 
 	public static final String TITLE = "Void Engine";
-	public static final String VERSION = "1.0.4";
+	public static final String VERSION = "1.0.5";
 	public static final int[] SIZE = {720,480};	
 
-	static Camera camera = new Camera(new Vector3d(375,33,461));
-	static World world;
-	static Shader shader;
-	static GUIText fps;
-
-	public static void main(String[] args) {
+	static Camera camera = new Camera(new Vector3d(0,33,0));
+	
+	public static void main(String[] args) throws LWJGLException {
 		ConfigHandler.loadConfigFiles();
-		RenderHandler.init(TITLE+" "+VERSION,SIZE[0],SIZE[1],false);
-		new MainKeyListener();
-		shader = new Shader();
-		if(!load("DemoLevel"))createWorld();
-		GUIHandler.createPauseMenu();
-		fps = new GUIText("");
-		loop();
+		start();
 	}
 
-	public static void restart() {
-		PhysicsEngine.clear();
-		RenderRegistry.clearEntities();
-		if(!load("DemoLevel"))createWorld();
+	static void start() {
+		RenderHandler.start(TITLE,SIZE[0],SIZE[1],false);
+		RenderHandler.setCamera(camera);
 		loop();
-	}
-	
-	static void createWorld() {
-		world = new World();
-		world.generateSky();
-		world.addSun();
-		world.generateStars();
-		world.generateFlatTerrain(0,new TerrainTexture("background"));
-		world.setGravity(new Vector3d(0,-ConfigHandler.getDouble("gravity"),0));
-	}
-	
-	public static boolean load() {
-		boolean b = SaveHandler.loadFile();
-		if(PhysicsEngine.getWorlds().size()>0)world = PhysicsEngine.getWorlds().get(0);
-		return b;
-	}
-	
-	public static boolean load(String file) {
-		boolean b = SaveHandler.loadFile(file);
-		if(PhysicsEngine.getWorlds().size()>0)world = PhysicsEngine.getWorlds().get(0);
-		return b;
 	}
 	
 	static void loop() {
-		long time = System.nanoTime();
+		if(!SaveHandler.loadFile("DemoLevel"))new DemoLevel().build();
+		new MainKeyListener(camera);
 		GUIHandler.switchToScreen("main");
-		while(!Display.isCloseRequested()) {
+		long time = System.nanoTime();
+		while(RenderHandler.isRendering()) {
 			double dt = System.nanoTime()-time;
 			time = System.nanoTime();
 			PhysicsEngine.step(dt);
-			updateFPS();
-			if(ConfigHandler.getBoolean("debug"))DebugRenderer.raycast(camera,world);
-			RenderHandler.renderWorld(world,camera,shader);
+			if(ConfigHandler.getBoolean("debug"))DebugRenderer.raycast(camera);
+			double r = 1/PhysicsEngine.TARGET_FPS-dt;
+			if(r>0)try{Thread.sleep((long)r);}catch(Exception e){}
 		}
-		exit();
-	}
-
-	static void updateFPS() {
-		fps.remove();
-		fps = new GUIText(String.valueOf(PhysicsEngine.getFPS()));
-		fps.setFontSize(3).addAttribute("all").setOffset(0.88,0.9);
-	}
-	
-	public static void exit() {
-		Loader.cleanUp();
-		shader.cleanUp();
-		RenderHandler.cleanUp();
-		Post.cleanUp();
-		SSAORenderer.cleanUp();
-		FlareRenderer.cleanUp();
-		Display.destroy();
-		System.exit(0);
 	}
 }

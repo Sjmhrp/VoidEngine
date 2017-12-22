@@ -1,8 +1,8 @@
 package sjmhrp.world;
 
-import sjmhrp.linear.Quaternion;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.RigidBody;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Vector3d;
 
 public class State {
 	
@@ -10,7 +10,6 @@ public class State {
 	Quaternion rotation;
 	Vector3d linearVel;
 	Vector3d angularVel;
-	Vector3d gravity;
 	double invmass;
 
 	public State(RigidBody b) {
@@ -18,7 +17,6 @@ public class State {
 		this.rotation = new Quaternion(b.getOrientation());
 		this.linearVel = new Vector3d(b.getLinearVel());
 		this.angularVel = new Vector3d(b.getAngularVel());
-		this.gravity = new Vector3d(b.getGravity());
 		this.invmass = b.getInvMass();
 	}
 
@@ -27,7 +25,6 @@ public class State {
 		b.getOrientation().set(rotation);
 		b.getLinearVel().set(linearVel);
 		b.getAngularVel().set(angularVel);
-		b.getGravity().set(gravity);
 		b.setInvMass(invmass);
 	}
 }

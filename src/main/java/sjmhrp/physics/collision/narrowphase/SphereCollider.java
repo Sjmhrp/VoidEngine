@@ -1,10 +1,10 @@
 package sjmhrp.physics.collision.narrowphase;
 
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.collision.Manifold;
 import sjmhrp.physics.shapes.SphereShape;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class SphereCollider extends NarrowPhaseAlgorithm{
 

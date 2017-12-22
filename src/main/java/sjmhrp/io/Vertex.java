@@ -3,7 +3,7 @@ package sjmhrp.io;
 import java.util.ArrayList;
 import java.util.List;
 
-import sjmhrp.linear.Vector3d;
+import sjmhrp.utils.linear.Vector3d;
  
 public class Vertex {
      

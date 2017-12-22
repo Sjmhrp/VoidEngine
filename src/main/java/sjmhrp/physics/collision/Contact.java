@@ -2,8 +2,8 @@ package sjmhrp.physics.collision;
 
 import java.io.Serializable;
 
-import sjmhrp.linear.Vector3d;
 import sjmhrp.utils.GeometryUtils;
+import sjmhrp.utils.linear.Vector3d;
 
 public class Contact implements Serializable {
 	

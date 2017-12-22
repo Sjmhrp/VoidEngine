@@ -1,10 +1,10 @@
 package sjmhrp.physics.collision.narrowphase;
 
 import sjmhrp.io.Log;
-import sjmhrp.linear.Transform;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.collision.Manifold;
 import sjmhrp.physics.shapes.ConvexShape;
+import sjmhrp.utils.linear.Transform;
 
 public class ConvexCollider extends NarrowPhaseAlgorithm{
 

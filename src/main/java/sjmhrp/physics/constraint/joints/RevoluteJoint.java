@@ -1,18 +1,20 @@
 package sjmhrp.physics.constraint.joints;
 
+import static java.lang.Math.sqrt;
+
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix2d;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Quaternion;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector2d;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.utils.GeometryUtils;
 import sjmhrp.utils.MatrixUtils;
 import sjmhrp.utils.ScalarUtils;
+import sjmhrp.utils.linear.Matrix2d;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector2d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class RevoluteJoint extends Joint {
 
@@ -38,6 +40,8 @@ public class RevoluteJoint extends Joint {
 	double impulseUpperLimit;
 	Vector3d biasTrans = new Vector3d();
 	Vector2d biasRot = new Vector2d();
+	Vector3d offsetTrans = new Vector3d();
+	Vector2d offsetRot = new Vector2d();
 	double biasLowerLimit;
 	double biasUpperLimit;
 	Quaternion initOrientationDifInv;
@@ -57,8 +61,8 @@ public class RevoluteJoint extends Joint {
 		localPoint2 = Transform.transform(transform2.getInverse(),anchorPoint);
 		a1l = Matrix4d.transform(transform1.getInverse().orientation.getRotationMatrix(),axis);
 		a2l = Matrix4d.transform(transform2.getInverse().orientation.getRotationMatrix(),axis);
-		positionCorrection = PositionCorrection.NON_LINEAR_GAUSS_SEIDEL;
 		initOrientationDifInv=Quaternion.mul(transform2.orientation,transform1.orientation.getInverse()).normalize().invert();
+		positionCorrection = PositionCorrection.NON_LINEAR_GAUSS_SEIDEL;
 	}
 
 	public RevoluteJoint(RigidBody b1, RigidBody b2, Vector3d anchorPoint, Vector3d axis, double lowerLimit, double upperLimit) {
@@ -139,9 +143,13 @@ public class RevoluteJoint extends Joint {
 		double d = c2xa1.dot(I1c2xa1)+c2xa1.dot(I2c2xa1);
 		effectiveMassRot = new Matrix2d(a,b,c,d);
 		effectiveMassRot.invert();
+		if(isBreakable()||(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE)) {
+			offsetTrans = Vector3d.sub(Vector3d.add(body2.getPosition(),rB),Vector3d.add(body1.getPosition(),rA));
+			offsetRot = new Vector2d(a1.dot(b2),a1.dot(c2)); 
+		}
 		if(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE) {
-			biasTrans = Vector3d.sub(Vector3d.add(body2.getPosition(),rB),Vector3d.add(body1.getPosition(),rA)).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
-			biasRot = new Vector2d(a1.dot(b2),a1.dot(c2)).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
+			biasTrans = Vector3d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetTrans);
+			biasRot = Vector2d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetRot);
 		}
 		if(isMotorEnabled||(isLimitEnabled&&(isLowerLimitViolated||isUpperLimitViolated))) {
 			effectiveMassLimitMotor=0;
@@ -317,5 +325,19 @@ public class RevoluteJoint extends Joint {
 			return dUpper>dLower?input:input+2*Math.PI;
 		}
 		return input;
+	}
+
+	@Override
+	public void resetImpulse() {
+		impulseTrans.zero();
+		impulseRot.zero();
+		impulseMotor=0;
+		impulseLowerLimit=0;
+		impulseUpperLimit=0;
+	}
+
+	@Override
+	public boolean isBroken() {
+		return isBreakable()&&sqrt(offsetTrans.lengthSquared()+offsetRot.lengthSquared())>breakingStrength;
 	}
 }

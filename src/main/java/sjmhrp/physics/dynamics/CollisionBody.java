@@ -2,32 +2,32 @@ package sjmhrp.physics.dynamics;
 
 import java.io.Serializable;
 
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Quaternion;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
 import sjmhrp.physics.shapes.CollisionShape;
 import sjmhrp.physics.shapes.CompoundShape;
 import sjmhrp.physics.shapes.ConvexShape;
 import sjmhrp.physics.shapes.SphereShape;
 import sjmhrp.physics.shapes.StaticTriMesh;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 import sjmhrp.world.World;
 
 public class CollisionBody implements Serializable{
 
 	private static final long serialVersionUID = 8586413579905937863L;
 	
-	Vector3d position;
-	Quaternion orientation;
+	protected Vector3d position;
+	protected Quaternion orientation;
 
-	double friction = 0.4;
-	double restitution = 0.0;
+	protected double friction = 0.4;
+	protected double restitution = 0.0;
 
-	CollisionShape collisionShape;
+	protected CollisionShape collisionShape;
 
-	transient World world;
+	transient protected World world;
 
 	public CollisionBody(CollisionShape collisionShape) {
 		this(new Vector3d(),new Quaternion(),collisionShape);
@@ -99,6 +99,10 @@ public class CollisionBody implements Serializable{
 		world = w;
 	}
 
+	public World getWorld() {
+		return world;
+	}
+	
 	public void setFriction(double f) {
 		friction=f;
 	}
@@ -114,7 +118,7 @@ public class CollisionBody implements Serializable{
 	}
 
 	public void setPosition(Vector3d position) {
-		this.position = position;
+		this.position.set(position);
 	}
 
 	public void setTransform(Transform transform) {
@@ -131,29 +135,42 @@ public class CollisionBody implements Serializable{
 	}
 
 	public void setOrientation(Quaternion rotation) {
-		this.orientation = rotation;
+		this.orientation.set(rotation);
 	}
 
 	public void setOrientation(Matrix4d rotation) {
-		this.orientation = new Quaternion(rotation.to3Matrix());
+		this.orientation.set(new Quaternion(rotation.to3Matrix()));
 	}
 
 	public Quaternion getOrientation() {
 		return orientation;
 	}
 
-	public void rotate(double x, double y, double z) {
-		rotate(new Vector3d(x,y,z));
+	public Matrix3d getRotation() {
+		return orientation.getRotationMatrix().to3Matrix();
+	}
+	
+	public Matrix3d getInvRotation() {
+		return orientation.getRotationMatrix().to3Matrix().invert();
+	}
+	
+	public CollisionBody rotate(double x, double y, double z) {
+		return rotate(new Vector3d(x,y,z));
 	}
 
-	public void rotate(Vector3d v) {
+	public CollisionBody rotate(Vector3d v) {
 		orientation.rotate(v,1);
+		return this;
 	}
 
 	public Matrix3d getInvInertiaMatrix() {
 		return new Matrix3d();
 	}
 
+	public Vector3d getInvInertia() {
+		return new Vector3d();
+	}
+	
 	public double getInvMass() {
 		return 0;
 	}
@@ -166,7 +183,29 @@ public class CollisionBody implements Serializable{
 		return new Vector3d();
 	}
 
+	public Vector3d getVelocityAtPoint(Vector3d p) {
+		return new Vector3d();
+	}
+	
 	public Vector3d getAngularVel() {
 		return new Vector3d();
+	}
+	
+	public Vector3d support(Vector3d direction) {
+		if(direction.lengthSquared()==0)return new Vector3d();
+		Vector3d dir = direction.getUnit();
+		Vector3d d = Matrix3d.transform(getInvRotation(),dir);
+		if(isConvex()) {
+			return ((ConvexShape)collisionShape).getLocalSupportPoint(d);
+		}
+		if(isCompound()) {
+			Vector3d furthest = null;
+			for(ConvexShape s : ((CompoundShape)collisionShape).getShapes()) {
+				Vector3d v = s.getLocalSupportPoint(d);
+				if(furthest==null||v.dot(d)>furthest.dot(d))furthest=v;
+			}
+			return furthest;
+		}
+		return null;
 	}
 }

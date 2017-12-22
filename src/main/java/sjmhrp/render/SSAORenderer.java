@@ -22,12 +22,12 @@ import java.util.Random;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL30;
 
-import sjmhrp.linear.Vector3d;
-import sjmhrp.post.Fbo;
-import sjmhrp.post.Post;
-import sjmhrp.shaders.Shader;
+import sjmhrp.render.post.Fbo;
+import sjmhrp.render.post.Post;
+import sjmhrp.render.shader.Shader;
+import sjmhrp.render.view.Camera;
 import sjmhrp.utils.ScalarUtils;
-import sjmhrp.view.Camera;
+import sjmhrp.utils.linear.Vector3d;
 
 public class SSAORenderer {
 
@@ -76,19 +76,19 @@ public class SSAORenderer {
 		SSAO2.cleanUp();
 	}
 	
-	static void renderSSAO(Shader s, Camera c) {
+	static void renderSSAO(Camera c) {
 		SSAO1.bindFrameBuffer();
 		RenderHandler.clear();
-		s.getSSAOShader().start();
-		s.getSSAOShader().loadSamples(samples);
-		s.getSSAOShader().loadViewMatrix(c.getViewMatrix());
+		Shader.getSSAOShader().start();
+		Shader.getSSAOShader().loadSamples(samples);
+		Shader.getSSAOShader().loadViewMatrix(c.getViewMatrix());
 		RenderHandler.renderQuad(Post.albedo.getDepthTexture(),Post.normal.getColourTexture(),ssaoNoise);
-		s.getSSAOShader().stop();
+		Shader.getSSAOShader().stop();
 		SSAO2.bindFrameBuffer();
 		RenderHandler.clear();
-		s.getSSAOBlurShader().start();
+		Shader.getSSAOBlurShader().start();
 		RenderHandler.renderQuad(SSAO1.getColourTexture());
-		s.getSSAOBlurShader().stop();
+		Shader.getSSAOBlurShader().stop();
 		SSAO2.unbindFrameBuffer();
 	}
 }

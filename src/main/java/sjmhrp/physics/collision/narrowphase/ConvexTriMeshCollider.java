@@ -1,14 +1,14 @@
 package sjmhrp.physics.collision.narrowphase;
 
 import sjmhrp.io.Log;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.collision.Manifold;
 import sjmhrp.physics.dynamics.CollisionBody;
 import sjmhrp.physics.shapes.ConvexShape;
 import sjmhrp.physics.shapes.StaticTriMesh;
 import sjmhrp.physics.shapes.TriangleShape;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class ConvexTriMeshCollider extends NarrowPhaseAlgorithm{
 
@@ -35,7 +35,8 @@ public class ConvexTriMeshCollider extends NarrowPhaseAlgorithm{
 			convexTransform=t2;
 			order=1;
 		}
-		m.setSeperatingAxis(Vector3d.sub(convexTransform.position,staticTransform.position).getUnit());
+		Vector3d v = Vector3d.sub(convexTransform.position,staticTransform.position);
+		m.setSeperatingAxis(v.lengthSquared()==0?new Vector3d():v.getUnit());
 		ConvexShape c1 = (ConvexShape)b1.getCollisionShape();
 		StaticTriMesh c2 = (StaticTriMesh)b2.getCollisionShape();
 		boolean collides = false;

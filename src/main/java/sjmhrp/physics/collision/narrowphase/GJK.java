@@ -1,11 +1,11 @@
 package sjmhrp.physics.collision.narrowphase;
 
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.shapes.ConvexShape;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class GJK{
 

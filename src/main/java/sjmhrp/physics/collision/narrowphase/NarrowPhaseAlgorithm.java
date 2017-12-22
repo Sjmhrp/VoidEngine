@@ -1,7 +1,7 @@
 package sjmhrp.physics.collision.narrowphase;
 
-import sjmhrp.linear.Transform;
 import sjmhrp.physics.collision.Manifold;
+import sjmhrp.utils.linear.Transform;
 
 public abstract class NarrowPhaseAlgorithm {
 

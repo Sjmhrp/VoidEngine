@@ -1,57 +1,89 @@
 package sjmhrp.render;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-import sjmhrp.entity.Entity;
-import sjmhrp.gui.BasicGUIComponent;
-import sjmhrp.gui.GUIComponent;
-import sjmhrp.gui.text.FontType;
-import sjmhrp.gui.text.GUIText;
-import sjmhrp.light.Light;
-import sjmhrp.models.RawModel;
-import sjmhrp.textures.ModelTexture;
+import sjmhrp.particle.Particle;
+import sjmhrp.physics.dynamics.CollisionBody;
+import sjmhrp.render.entity.Entity;
+import sjmhrp.render.gui.GUIBox;
+import sjmhrp.render.gui.GUIComponent;
+import sjmhrp.render.gui.text.FontType;
+import sjmhrp.render.gui.text.GUIText;
+import sjmhrp.render.light.Light;
+import sjmhrp.render.models.RawModel;
+import sjmhrp.render.textures.ModelTexture;
+import sjmhrp.render.textures.ParticleTexture;
 
 public class RenderRegistry {
 
-	static HashMap<RawModel,HashMap<ModelTexture,ArrayList<Entity>>> entities = new HashMap<RawModel,HashMap<ModelTexture,ArrayList<Entity>>>();
+	static ConcurrentHashMap<RawModel,ConcurrentHashMap<ModelTexture,List<Entity>>> entities = new ConcurrentHashMap<RawModel,ConcurrentHashMap<ModelTexture,List<Entity>>>();
 	static ArrayList<Light> lights = new ArrayList<Light>();
-	static ArrayList<BasicGUIComponent> gui = new ArrayList<BasicGUIComponent>();
+	static HashMap<ModelTexture,ArrayList<Entity>> decals = new HashMap<ModelTexture,ArrayList<Entity>>();
+	static HashMap<ParticleTexture,ArrayList<Particle>> particles = new HashMap<ParticleTexture,ArrayList<Particle>>();
+	static ArrayList<GUIBox> gui = new ArrayList<GUIBox>();
 	static HashMap<FontType,ArrayList<GUIText>> text = new HashMap<FontType,ArrayList<GUIText>>();
 	
 	public static void clearEntities() {
-		entities = new HashMap<RawModel,HashMap<ModelTexture,ArrayList<Entity>>>();
+		entities = new ConcurrentHashMap<RawModel,ConcurrentHashMap<ModelTexture,List<Entity>>>();
 		lights = new ArrayList<Light>();
+		decals = new HashMap<ModelTexture,ArrayList<Entity>>();
+		particles = new HashMap<ParticleTexture,ArrayList<Particle>>();
 	}
 	
 	public static void clear() {
 		clearEntities();
-		gui = new ArrayList<BasicGUIComponent>();
+		decals.clear();
+		particles.clear();
+		gui = new ArrayList<GUIBox>();
 		text = new HashMap<FontType,ArrayList<GUIText>>();
 	}
 	
 	public static void registerEntity(Entity e) {
-		RawModel m = e.getModel().getRawModel();
-		ModelTexture t = e.getModel().getTexture();
-		HashMap<ModelTexture,ArrayList<Entity>> ess = entities.get(m);
+		RawModel m = e.getModel();
+		ModelTexture t = e.getTexture();
+		ConcurrentHashMap<ModelTexture,List<Entity>> ess = entities.get(m);
 		if(ess==null) {
-			ess = new HashMap<ModelTexture,ArrayList<Entity>>();
+			ess = new ConcurrentHashMap<ModelTexture,List<Entity>>();
 			entities.put(m,ess);
 		}
-		ArrayList<Entity> es = ess.get(t);
+		List<Entity> es = ess.get(t);
 		if(es==null) {
-			es = new ArrayList<Entity>();
+			es = Collections.synchronizedList(new ArrayList<Entity>());
 			ess.put(t,es);
 		}
 		es.add(e);
 	}
 
+	public static void registerDecal(Entity e) {
+		ModelTexture t = e.getTexture();
+		ArrayList<Entity> es = decals.get(t);
+		if(es==null) {
+			es = new ArrayList<Entity>();
+			decals.put(t,es);
+		}
+		es.add(e);
+	}
+	
 	public static void registerLight(Light l) {
 		lights.add(l);
 	}
-
-	public static void registerGUIComponent(BasicGUIComponent g) {
+	
+	public static void registerParticle(Particle p) {
+		ArrayList<Particle> ps = particles.get(p.getTexture());
+		if(ps==null) {
+			ps = new ArrayList<Particle>();
+			particles.put(p.getTexture(),ps);
+		}
+		ps.add(p);
+	}
+	
+	public static void registerGUIComponent(GUIBox g) {
 		gui.add(g);
 	}
 	
@@ -65,17 +97,32 @@ public class RenderRegistry {
 	}
 	
 	public static void removeEntity(Entity e) {
-		HashMap<ModelTexture,ArrayList<Entity>> e1 = entities.get(e.getModel().getTexture());
+		ConcurrentHashMap<ModelTexture,List<Entity>> e1 = entities.get(e.getModel());
 		if(e1==null)return;
-		ArrayList<Entity> e2 = e1.get(e.getModel().getRawModel());
+		List<Entity> e2 = e1.get(e.getTexture());
 		if(e2!=null)e2.remove(e);
+	}
+	
+	public static void removeDecal(Entity e) {
+		ArrayList<Entity> es = decals.get(e.getTexture());
+		if(es==null)return;
+		es.remove(e);
 	}
 	
 	public static void removeLight(Light l) {
 		lights.remove(l);
 	}
 	
-	public static void removeGUIComponent(BasicGUIComponent g) {
+	public static void removeParticle(Particle p) {
+		for(Entry<ParticleTexture,ArrayList<Particle>> e : particles.entrySet()) {
+			if(e.getKey()==p.getTexture()) {
+				e.getValue().remove(p);
+				return;
+			}
+		}
+	}
+	
+	public static void removeGUIComponent(GUIBox g) {
 		gui.remove(g);
 	}
 	
@@ -84,25 +131,43 @@ public class RenderRegistry {
 		if(g!=null)g.remove(t);
 	}
 	
-	public static HashMap<RawModel, HashMap<ModelTexture, ArrayList<Entity>>> getEntities() {
+	public static ConcurrentHashMap<RawModel,ConcurrentHashMap<ModelTexture,List<Entity>>> getEntities() {
 		return entities;
 	}
 
+	public static ArrayList<Entity> getEntities(CollisionBody r) {
+		return getAllEntities().stream().filter(e->e.getPosition().equals(r.getPosition())).collect(Collectors.toCollection(ArrayList::new));
+	}
+	
 	public static ArrayList<Entity> getAllEntities() {
 		ArrayList<Entity> es = new ArrayList<Entity>();
-		for(Entry<RawModel,HashMap<ModelTexture,ArrayList<Entity>>> e1 : entities.entrySet()) {
-			for(Entry<ModelTexture,ArrayList<Entity>> e2 : e1.getValue().entrySet()) {
-				es.addAll(e2.getValue());
-			}
-		}
+		entities.values().forEach(e->e.values().forEach(es::addAll));
 		return es;
+	}
+	
+	public static HashMap<ModelTexture,ArrayList<Entity>> getDecals() {
+		return decals;
 	}
 	
 	public static ArrayList<Light> getLights() {
 		return lights;
 	}
 	
-	public static ArrayList<BasicGUIComponent> getGUI() {
+	public static HashMap<ParticleTexture,ArrayList<Particle>> getParticles() {
+		return particles;
+	}
+	
+	public static ArrayList<Particle> getAllParticles() {
+		ArrayList<Particle> ps = new ArrayList<Particle>();
+		particles.values().forEach(ps::addAll);
+		return ps;
+	}
+	
+	public static boolean containsParticle(Particle p) {
+		return particles.values().stream().anyMatch(ps->ps.contains(p));
+	}
+	
+	public static ArrayList<GUIBox> getGUI() {
 		return gui;
 	}
 	
@@ -122,5 +187,5 @@ public class RenderRegistry {
 		ArrayList<GUIComponent> guis = new ArrayList<GUIComponent>(gui);
 		guis.addAll(getAllText());
 		return guis;
-	}	
+	}
 }

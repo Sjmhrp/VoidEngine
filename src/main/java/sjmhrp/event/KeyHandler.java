@@ -9,10 +9,16 @@ import sjmhrp.io.ConfigHandler;
 
 public class KeyHandler {
 
-	public static boolean[] keys = new boolean[Keyboard.KEYBOARD_SIZE];
-	public static boolean[] buttons = new boolean[Mouse.getButtonCount()];
+	public static boolean[] keys;
+	public static boolean[] buttons;
+	
+	public static void init() {
+		keys = new boolean[Keyboard.KEYBOARD_SIZE];
+		buttons = new boolean[Mouse.getButtonCount()];
+	}
 	
 	public static void tick(ArrayList<KeyListener> listeners) {
+		if(keys==null||buttons==null)return;
 		while(Keyboard.next()) {
 			int key = Keyboard.getEventKey();
 			boolean pressed = Keyboard.getEventKeyState();

@@ -6,14 +6,14 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector2d;
-import sjmhrp.linear.Vector3d;
-import sjmhrp.models.RawModel;
 import sjmhrp.physics.shapes.CompoundShape;
 import sjmhrp.physics.shapes.ConvexHullShape;
 import sjmhrp.physics.shapes.StaticTriMesh;
 import sjmhrp.render.Loader;
+import sjmhrp.render.models.RawModel;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector2d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class OBJHandler {
 	static final String RES_LOC = "/res/models/";

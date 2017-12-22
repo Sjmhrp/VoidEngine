@@ -2,20 +2,25 @@ package sjmhrp.physics.shapes;
 
 import java.util.ArrayList;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
 import sjmhrp.physics.collision.broadphase.Tree;
 import sjmhrp.physics.dynamics.Ray;
+import sjmhrp.render.models.MeshData;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class StaticTriMesh extends CollisionShape{
 
 	private static final long serialVersionUID = 6554328017488502778L;
 	
 	ArrayList<TriangleShape> mesh = new ArrayList<TriangleShape>();
-	Tree tree = new Tree();
+	Tree<TriangleShape> tree = new Tree<TriangleShape>();
 
+	public StaticTriMesh(MeshData meshData, Transform transform) {
+		this(meshData.getVertices(),meshData.getIndices(),transform);
+	}
+	
 	public StaticTriMesh(double[] vertices, int[] indices, Transform transform) {
 		for(int i = 0; i < indices.length/3; i++) {
 			Vector3d v1 = new Vector3d(vertices[indices[i*3]*3],vertices[indices[i*3]*3+1],vertices[indices[i*3]*3+2]);
@@ -38,11 +43,7 @@ public class StaticTriMesh extends CollisionShape{
 	}
 
 	public ArrayList<TriangleShape> query(AABB box) {
-		ArrayList<TriangleShape> triangles = new ArrayList<TriangleShape>();
-		for(Object o : tree.query(box)) {
-			triangles.add((TriangleShape)o);
-		}
-		return triangles;
+		return tree.query(box);
 	}
 
 	public ArrayList<TriangleShape> query(Ray ray) {

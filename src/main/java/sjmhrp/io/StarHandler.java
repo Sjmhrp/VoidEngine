@@ -4,10 +4,10 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import sjmhrp.linear.Vector3d;
-import sjmhrp.sky.SkyRenderer;
-import sjmhrp.sky.Star;
 import sjmhrp.utils.ScalarUtils;
+import sjmhrp.utils.linear.Vector3d;
+import sjmhrp.world.sky.SkyRenderer;
+import sjmhrp.world.sky.Star;
 
 public class StarHandler {
 	static final String RES_LOC = "/res/";

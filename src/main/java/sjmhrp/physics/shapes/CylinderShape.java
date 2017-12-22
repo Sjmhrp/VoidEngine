@@ -1,10 +1,10 @@
 package sjmhrp.physics.shapes;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector2d;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector2d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class CylinderShape extends ConvexShape {
 
@@ -63,6 +63,11 @@ public class CylinderShape extends ConvexShape {
 		return implicitShapeDimensions.y*localScaling.y*2;
 	}
 
+	public double getVolume() {
+		Vector2d r = getRadius();
+		return Math.PI*r.x*r.y*getHeight();
+	}
+	
 	@Override
 	public String getName() {
 		return "CYLINDER";

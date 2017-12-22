@@ -1,51 +1,80 @@
 package sjmhrp.physics;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.Display;
 
-import sjmhrp.event.EventListener;
 import sjmhrp.event.KeyHandler;
 import sjmhrp.event.KeyListener;
-import sjmhrp.gui.GUIHandler;
+import sjmhrp.event.TickListener;
+import sjmhrp.io.ConfigHandler;
+import sjmhrp.render.RenderRegistry;
+import sjmhrp.render.debug.DebugRenderer;
+import sjmhrp.render.entity.Entity;
+import sjmhrp.utils.ScalarUtils;
 import sjmhrp.world.World;
 
 public class PhysicsEngine {
 	
-	public static boolean paused = false;
+	public static final double TARGET_FPS = 60;
+	static final int MAX_SUB_TICKS = 1;
+	
+	static boolean paused = false;
 	public static int tick = 0;
 	static double timeStep;
+	static double subTimeStep;
 	
 	static ArrayList<World> worlds = new ArrayList<World>();
-	static ArrayList<EventListener> listeners = new ArrayList<EventListener>();
+	static ArrayList<TickListener> listeners = new ArrayList<TickListener>();
+	static ArrayList<Runnable> tasks = new ArrayList<Runnable>();
 	
 	public static void step(double dt) {
-		timeStep=dt/1000000000;
-		ArrayList<KeyListener> ls = new ArrayList<KeyListener>();
-		for(EventListener e : listeners) {
-			if(e instanceof KeyListener)ls.add((KeyListener)e);
-		}
-		KeyHandler.tick(ls);
-		for(EventListener e : listeners) {
-			e.tick();
-		}
-		GUIHandler.tick();
-		if(!paused) {
-			for(World world : worlds) {
-				if(!Keyboard.isKeyDown(Keyboard.KEY_Q)) {
-					world.stepForward();
-				} else {
-					world.stepBackward();
+		ArrayList<Runnable> ts = new ArrayList<Runnable>(tasks);
+		tasks.clear();
+		ts.stream().filter(t->t!=null).forEach(Runnable::run);
+		timeStep = dt/1000000000;
+		int ticks = (int)(timeStep*TARGET_FPS);
+		ticks=ScalarUtils.clamp(ticks,1,MAX_SUB_TICKS);
+		subTimeStep=timeStep/ticks;
+		for(int i = 0; i < ticks; i++) {
+			if(ConfigHandler.getBoolean("debug"))DebugRenderer.clearContacts();
+			ArrayList<KeyListener> ls = new ArrayList<KeyListener>();
+			for(TickListener e : new ArrayList<TickListener>(listeners)) {
+				if(e instanceof KeyListener)ls.add((KeyListener)e);
+			}
+			KeyHandler.tick(ls);
+			for(TickListener l : new ArrayList<TickListener>(listeners)) {
+				l.tick();
+			}
+			if(!paused) {
+				for(World world : worlds) {
+					if(!Keyboard.isKeyDown(Keyboard.KEY_Q)) {
+						world.stepForward();
+					} else {
+						world.stepBackward();
+					}
 				}
 			}
+			tick++;
+			RenderRegistry.getAllEntities().forEach(Entity::updateTransformMatrix);
 		}
-		tick++;
+	}
+	
+	public static void addTask(Runnable r) {
+		tasks.add(r);
+	}
+	
+	public static void pause(boolean b) {
+		tasks.add(()->paused=b);
+	}
+	
+	public static boolean isPaused() {
+		return paused;
 	}
 	
 	public static double getTimeStep() {
-		return timeStep;
+		return subTimeStep;
 	}
 
 	public static double getFPS() {
@@ -56,22 +85,24 @@ public class PhysicsEngine {
 		return worlds;
 	}
 	
-	public static void pause() {
-		Mouse.setGrabbed(paused);
-		paused=!paused;
-		if(paused)Mouse.setCursorPosition(Display.getWidth()/2,Display.getHeight()/2);
-		GUIHandler.switchToScreen(paused?"pause":"main");
-	}
-	
 	public static void registerWorld(World world) {
 		worlds.add(world);
 	}
 	
-	public static void addEventListener(EventListener e) {
+	public static void addTickListener(TickListener e) {
 		listeners.add(e);
+	}
+	
+	public static void removeTickListener(TickListener e) {
+		listeners.remove(e);
+	}
+	
+	public static ArrayList<TickListener> getListeners() {
+		return listeners;
 	}
 	
 	public static void clear() {
 		worlds.clear();
+		listeners=listeners.stream().filter(TickListener::keepOnLoad).collect(Collectors.toCollection(ArrayList::new));
 	}
 }

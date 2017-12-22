@@ -2,7 +2,7 @@ package sjmhrp.physics.collision.broadphase;
 
 import java.io.Serializable;
 
-import sjmhrp.linear.Vector3d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class AABB implements Serializable {
 	

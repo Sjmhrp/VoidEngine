@@ -1,9 +1,11 @@
 package sjmhrp.physics.shapes;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
+import static java.lang.Math.PI;
+
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class SphereShape extends ConvexShape {
 
@@ -28,13 +30,22 @@ public class SphereShape extends ConvexShape {
 
 	@Override
 	public Vector3d calculateLocalInertia(double mass) {
-		return new Vector3d(0.4f*mass*getRadius()*getRadius());
+		return new Vector3d(0.4*mass*getRadius()*getRadius());
 	}
 
 	public double getRadius() {
 		return implicitShapeDimensions.x*localScaling.x;
 	}
 
+	public double getDiameter() {
+		return 2*getRadius();
+	}
+	
+	public double getVolume() {
+		double r = getRadius();
+		return 4d/3d*PI*r*r*r;
+	}
+	
 	@Override
 	public String getName() {
 		return "SPHERE";

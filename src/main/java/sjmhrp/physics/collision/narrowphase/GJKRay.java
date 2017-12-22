@@ -1,11 +1,11 @@
 package sjmhrp.physics.collision.narrowphase;
 
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.RaycastResult;
 import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.physics.shapes.ConvexShape;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class GJKRay {
 
@@ -53,7 +53,8 @@ public class GJKRay {
 			distSquare = v.lengthSquared();
 			if(prevDistSquare-distSquare<=EPSILON*prevDistSquare)return;
 		} while(!simplex.isFull()&&distSquare>EPSILON*simplex.getMaxLengthSquared());
-		result.setOutput(n.getUnit(),x,lambda);
+		if(lambda>ray.getLength())return;
+		result.setOutput(n.lengthSquared()==0?new Vector3d():n.getUnit(),x,lambda);
 	}
 	
 	Vector3d support(Vector3d v) {

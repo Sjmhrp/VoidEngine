@@ -5,13 +5,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.dynamics.CollisionBody;
 import sjmhrp.utils.GeometryUtils;
 import sjmhrp.utils.ScalarUtils;
 import sjmhrp.utils.VectorUtils;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class Manifold implements Serializable {
 
@@ -22,8 +22,8 @@ public class Manifold implements Serializable {
 	public final ArrayList<Contact> points = new ArrayList<Contact>();
 	public CollisionBody body1;
 	public CollisionBody body2;
-	Transform transform1;
-	Transform transform2;
+	public Transform transform1;
+	public Transform transform2;
 	Vector3d prevSeperatingAxis = new Vector3d(1,0,0);
 	double combinedFriction;
 	double combinedRestitution;
@@ -233,6 +233,31 @@ public class Manifold implements Serializable {
 		}
 	}
 
+	public void solvePosition() {
+		for(Contact c : points) {
+			Vector3d rA = Vector3d.sub(c.globalPointA,body1.getPosition());
+			Vector3d rB = Vector3d.sub(c.globalPointB,body2.getPosition());
+			Vector3d dv = new Vector3d(body2.getLinearVel());
+			dv.sub(body1.getLinearVel());
+			dv.add(Vector3d.cross(body2.getAngularVel(),rB));
+			dv.sub(Vector3d.cross(body1.getAngularVel(),rA));
+			Vector3d vn = body1.getInvInertiaMatrix().transform(VectorUtils.crossABA(rA,c.normal));
+			vn.add(body2.getInvInertiaMatrix().transform(VectorUtils.crossABA(rB,c.normal)));
+			double m = (body1.getInvMass()+body2.getInvMass());
+			c.normalMass = 1f/(m+Math.abs(vn.dot(c.normal)));
+			Vector3d d = new Vector3d(body2.getPosition());
+			d.sub(body1.getPosition());
+			d.add(rB);
+			d.sub(rA);
+			double lambda = vn.dot(c.normal);
+			Vector3d p = Vector3d.scale(lambda,c.normal);
+			body1.addPosition(Vector3d.scale(-body1.getInvMass(),p));
+			body2.addPosition(Vector3d.scale(body2.getInvMass(),p));
+			body1.rotate(body1.getInvInertiaMatrix().transform(Vector3d.cross(rA,p)).negate());
+			body2.rotate(body2.getInvInertiaMatrix().transform(Vector3d.cross(rB,p)));
+		}
+	}
+	
 	public Vector3d getPrevSeperatingAxis() {
 		return prevSeperatingAxis;
 	}

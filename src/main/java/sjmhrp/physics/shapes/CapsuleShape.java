@@ -1,9 +1,9 @@
 package sjmhrp.physics.shapes;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class CapsuleShape extends ConvexShape {
 
@@ -56,6 +56,12 @@ public class CapsuleShape extends ConvexShape {
 		return implicitShapeDimensions.x;
 	}
 
+	public double getVolume() {
+		double r = implicitShapeDimensions.x;
+		double h = implicitShapeDimensions.y*2;
+		return Math.PI*r*r*(h+4d/3d*r);
+	}
+	
 	@Override
 	public String getName() {
 		return "CAPSULE";

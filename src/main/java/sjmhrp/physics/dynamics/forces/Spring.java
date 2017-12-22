@@ -1,7 +1,7 @@
 package sjmhrp.physics.dynamics.forces;
 
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.RigidBody;
+import sjmhrp.utils.linear.Vector3d;
 
 public class Spring extends Force {
 
@@ -14,6 +14,10 @@ public class Spring extends Force {
 	RigidBody body1;
 	RigidBody body2;
 	Vector3d anchor;
+	
+	public Spring(RigidBody b1, RigidBody b2, double k) {
+		this(b1,b2,k,0);
+	}
 	
 	public Spring(RigidBody b1, RigidBody b2, double k, double l) {
 		body1=b1;
@@ -28,6 +32,10 @@ public class Spring extends Force {
 		breakingLengthSquared=b*b;
 	}
 
+	public Spring(RigidBody body, Vector3d anchor, double k) {
+		this(body,anchor,k,0);
+	}
+	
 	public Spring(RigidBody body, Vector3d anchor, double k, double l) {
 		body1=body;
 		this.anchor=anchor;
@@ -41,6 +49,11 @@ public class Spring extends Force {
 		breakingLengthSquared=b*b;
 	}
 
+	public Spring setAnchor(Vector3d v) {
+		anchor.set(v);
+		return this;
+	}
+	
 	@Override
 	public boolean update() {
 		if(anchor==null) {

@@ -1,16 +1,19 @@
 package sjmhrp.physics.constraint.joints;
 
+import static java.lang.Math.sqrt;
+
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix2d;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector2d;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.utils.GeometryUtils;
 import sjmhrp.utils.ScalarUtils;
+import sjmhrp.utils.linear.Matrix2d;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector2d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class PrismaticJoint extends Joint {
 
@@ -38,6 +41,8 @@ public class PrismaticJoint extends Joint {
 	double impulseUpperLimit;
 	Vector2d biasTrans = new Vector2d();
 	Vector3d biasRot = new Vector3d();
+	Vector2d offsetTrans = new Vector2d();
+	Vector3d offsetRot = new Vector3d();
 	double biasLowerLimit;
 	double biasUpperLimit;
 	boolean isLimitEnabled;
@@ -48,6 +53,8 @@ public class PrismaticJoint extends Joint {
 	double upperLimit = 1;
 	double motorSpeed;
 	double motorTorque;
+	
+	Quaternion initialDifference;
 
 	public PrismaticJoint(RigidBody b1, RigidBody b2, Vector3d anchorPoint, Vector3d axis) {
 		super(b1,b2);
@@ -55,6 +62,9 @@ public class PrismaticJoint extends Joint {
 		localPoint1 = Transform.transform(transform1.getInverse(),anchorPoint);
 		localPoint2 = Transform.transform(transform2.getInverse(),anchorPoint);
 		al = Matrix4d.transform(transform1.getInverse().orientation.getRotationMatrix(),axis);
+		initialDifference = Quaternion.mul(transform2.orientation,transform1.orientation.getInverse());
+		initialDifference.normalize();
+		initialDifference.invert();
 		positionCorrection = PositionCorrection.NON_LINEAR_GAUSS_SEIDEL;
 	}
 
@@ -131,10 +141,16 @@ public class PrismaticJoint extends Joint {
 		effectiveMassTrans.invert();
 		effectiveMassRot = new Matrix3d(body1.getInvInertiaMatrix()).add(body2.getInvInertiaMatrix());
 		effectiveMassRot.invert();
+		Vector3d w = Vector3d.sub(Vector3d.add(transform2.position,r2),Vector3d.add(transform1.position,r1));
+		if(isBreakable()||(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE)) {
+			Quaternion dq = Quaternion.mul(transform2.orientation,transform1.orientation.getInverse());
+			dq.normalize();
+			offsetTrans = new Vector2d(w.dot(n1),w.dot(n2));
+			offsetRot = Quaternion.mul(dq,initialDifference).getVector();
+		}
 		if(Globals.positionCorrection&&positionCorrection==PositionCorrection.BAUMGARTE) {
-			Vector3d w = Vector3d.sub(Vector3d.add(transform2.position,r2),Vector3d.add(transform1.position,r1));
-			biasTrans = new Vector2d(w.dot(n1),w.dot(n2));
-			biasRot = Vector3d.sub(transform2.orientation.getVector(),transform1.orientation.getVector()).scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep());
+			biasTrans = Vector2d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetTrans);
+			biasRot = Vector3d.scale(Globals.BAUMGARTE/PhysicsEngine.getTimeStep(),offsetRot);
 		}
 		if(isLimitEnabled&&(isLowerLimitViolated||isUpperLimitViolated)) {
 			effectiveMassLimit=0;
@@ -234,8 +250,8 @@ public class PrismaticJoint extends Joint {
 
 	void applyImpulseLimit(double lambda) {
 		applyImpulseMotor(lambda);
-		body1.addAngularVelocity(Matrix3d.transform(body1.getInvInertiaMatrix(),Vector3d.scale(-lambda,r1uxaw.getUnit())));
-		body2.addAngularVelocity(Matrix3d.transform(body2.getInvInertiaMatrix(),Vector3d.scale(lambda,r2xaw.getUnit())));
+		body1.addAngularVelocity(Matrix3d.transform(body1.getInvInertiaMatrix(),Vector3d.scale(-lambda,r1uxaw.lengthSquared()==0?new Vector3d():r1uxaw.getUnit())));
+		body2.addAngularVelocity(Matrix3d.transform(body2.getInvInertiaMatrix(),Vector3d.scale(lambda,r2xaw.lengthSquared()==0?new Vector3d():r2xaw.getUnit())));
 	}
 	
 	void applyImpulseMotor(double lambda) {
@@ -263,12 +279,38 @@ public class PrismaticJoint extends Joint {
 		double b = r1uxn1.dot(Matrix3d.transform(body1.getInvInertiaMatrix(),r1uxn2))+r2xn1.dot(Matrix3d.transform(body2.getInvInertiaMatrix(),r2xn2));
 		double c = r1uxn2.dot(Matrix3d.transform(body1.getInvInertiaMatrix(),r1uxn1))+r2xn2.dot(Matrix3d.transform(body2.getInvInertiaMatrix(),r2xn1));
 		double d = body1.getInvMass()+body2.getInvMass()+r1uxn2.dot(Matrix3d.transform(body1.getInvInertiaMatrix(),r1uxn2))+r2xn2.dot(Matrix3d.transform(body2.getInvInertiaMatrix(),r2xn2));
+		Quaternion dq = Quaternion.mul(body2.getOrientation(),body1.getOrientation().getInverse()).normalize();
 		effectiveMassTrans = new Matrix2d(a,b,c,d);
 		effectiveMassTrans.invert();
+		effectiveMassRot = new Matrix3d(body1.getInvInertiaMatrix()).add(body2.getInvInertiaMatrix());
+		effectiveMassRot.invert();
+		Quaternion error =  Quaternion.mul(dq,initialDifference).normalize();
 		Vector2d lambdaTrans = new Vector2d(-u.dot(n1),-u.dot(n2));
+		Vector3d lambdaRot = error.getVector().scale(error.w);
 		effectiveMassTrans.transform(lambdaTrans);
+		effectiveMassRot.transform(lambdaRot);
 		Vector3d dv = Vector3d.add(Vector3d.scale(lambdaTrans.x,n1),Vector3d.scale(lambdaTrans.y,n2));
 		body1.addPosition(Vector3d.scale(-body1.getInvMass(),dv));
 		body2.addPosition(Vector3d.scale(body2.getInvMass(),dv));
+		Vector3d w1 = Vector3d.sub(Vector3d.scale(lambdaTrans.x,r1uxn1),Vector3d.scale(lambdaTrans.y,r1uxn2));
+		Vector3d w2 = Vector3d.add(Vector3d.scale(lambdaTrans.x,r2xn1),Vector3d.scale(lambdaTrans.y,r2xn2));
+		body1.rotate(Matrix3d.transform(body1.getInvInertiaMatrix(),w1));
+		body2.rotate(Matrix3d.transform(body1.getInvInertiaMatrix(),w2));
+		body1.rotate(Matrix3d.transform(body1.getInvInertiaMatrix(),lambdaRot));
+		body2.rotate(Matrix3d.transform(body2.getInvInertiaMatrix(),lambdaRot.getNegative()));
+	}
+	
+	@Override
+	public void resetImpulse() {
+		impulseTrans.zero();
+		impulseRot.zero();
+		impulseMotor=0;
+		impulseLowerLimit=0;
+		impulseUpperLimit=0;
+	}
+
+	@Override
+	public boolean isBroken() {
+		return isBreakable()&&sqrt(offsetTrans.lengthSquared()+offsetRot.lengthSquared())>breakingStrength;
 	}
 }

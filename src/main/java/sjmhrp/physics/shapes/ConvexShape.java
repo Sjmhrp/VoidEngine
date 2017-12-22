@@ -1,7 +1,7 @@
 package sjmhrp.physics.shapes;
 
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Vector3d;
+import sjmhrp.utils.linear.Vector3d;
 
 public abstract class ConvexShape extends CollisionShape {
 

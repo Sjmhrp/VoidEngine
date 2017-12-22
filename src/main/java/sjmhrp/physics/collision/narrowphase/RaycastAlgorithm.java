@@ -1,9 +1,9 @@
 package sjmhrp.physics.collision.narrowphase;
 
-import sjmhrp.linear.Transform;
 import sjmhrp.physics.collision.RaycastResult;
 import sjmhrp.physics.dynamics.CollisionBody;
 import sjmhrp.physics.dynamics.Ray;
+import sjmhrp.utils.linear.Transform;
 
 public interface RaycastAlgorithm {
 

@@ -17,8 +17,15 @@ import org.newdawn.slick.opengl.Texture;
 import org.newdawn.slick.opengl.TextureLoader;
 
 import sjmhrp.io.Log;
-import sjmhrp.models.MeshData;
-import sjmhrp.models.RawModel;
+import sjmhrp.io.colladaloader.AnimatedModelData;
+import sjmhrp.io.colladaloader.AnimationData;
+import sjmhrp.io.colladaloader.ColladaLoader;
+import sjmhrp.render.animation.AnimatedJoint;
+import sjmhrp.render.animation.AnimatedModel;
+import sjmhrp.render.animation.Animation;
+import sjmhrp.render.animation.KeyFrame;
+import sjmhrp.render.models.MeshData;
+import sjmhrp.render.models.RawModel;
 
 public class Loader {
 
@@ -37,6 +44,16 @@ public class Loader {
 		return new RawModel(id,indices.length,m);
 	}
 
+	public static RawModel load(double[] pos, int[] indices, double[] normals) {
+		int id = create();
+		int i = bindIndices(indices);
+		int v = store(0,3,pos);
+		int n = store(1,3,normals);
+		unbind();
+		MeshData m = new MeshData(pos,v,normals,n,indices,i);
+		return new RawModel(id,indices.length,m);
+	}
+	
 	public static RawModel load(double[] pos, int[] indices, double[] normals, double[] tangents, double[] uv) {
 		int id = create();
 		int i = bindIndices(indices);
@@ -63,6 +80,30 @@ public class Loader {
         unbind();
         MeshData m = new MeshData(pos,v,texPos,u);
         return new RawModel(id,pos.length/2,m);
+	}
+	
+	public static AnimatedModel loadAnimatedModel(String filePath) {
+		AnimatedModelData data = ColladaLoader.loadColladaModel(filePath,3);
+		MeshData m = data.getMeshData();
+		int id = create();
+		bindIndices(m.getIndices());
+		store(0,3,m.getVertices());
+		store(1,2,m.getUvs());
+		store(2,3,m.getNormals());
+		storeInt(3,3,m.getJointIDs());
+		store(4,3,m.getWeights());
+		unbind();
+		AnimatedJoint head = new AnimatedJoint(data.getJointsData().head);
+		return new AnimatedModel(id,m.getVertices().length/3,m,head,data.getJointsData().jointCount);
+	}
+	
+	public static Animation loadAnimation(String filePath) {
+		AnimationData data = ColladaLoader.loadColladaAnimation(filePath);
+		KeyFrame[] keyFrames = new KeyFrame[data.keyFrames.length];
+		for(int i = 0; i < keyFrames.length; i++) {
+			keyFrames[i]=new KeyFrame(data.keyFrames[i]);
+		}
+		return new Animation(data.length,keyFrames);
 	}
 	
 	public static int loadTexture(String file) {
@@ -97,6 +138,9 @@ public class Loader {
 		for(int i : textures) {
 			GL11.glDeleteTextures(i);
 		}
+		vaos.clear();
+		vbos.clear();
+		textures.clear();
 	}
 
 	private static int create() {
@@ -117,6 +161,17 @@ public class Loader {
 		return id;
 	}
 	
+	private static int storeInt(int n, int size, int[] data) {
+		int id = GL15.glGenBuffers();
+		vbos.add(id);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER,id);
+		IntBuffer i = convertInts(data);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER,i,GL15.GL_STATIC_DRAW);
+		GL30.glVertexAttribIPointer(n,size,GL11.GL_INT,0,0);
+		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		return id;
+	}
+
 	public static void updateVbo(int vbo, int n, int size, double[] data) {
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
 		FloatBuffer f = convertFloats(data);

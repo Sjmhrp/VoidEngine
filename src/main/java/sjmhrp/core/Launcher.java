@@ -33,7 +33,7 @@ public class Launcher {
 			process.waitFor();
 		} catch(Exception e) {
 			Log.printError(e);
-		} finally{
+		} finally {
 			NativesLoader.deleteNatives();
 		}
 	}

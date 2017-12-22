@@ -2,7 +2,7 @@ package sjmhrp.utils;
 
 import java.util.HashMap;
 
-import sjmhrp.linear.Vector3d;
+import sjmhrp.utils.linear.Vector3d;
 
 public class ColourUtils {
 

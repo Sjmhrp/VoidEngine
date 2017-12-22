@@ -4,13 +4,13 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 import sjmhrp.core.Globals;
-import sjmhrp.linear.Matrix3d;
-import sjmhrp.linear.Quaternion;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.Contact;
 import sjmhrp.physics.shapes.ConvexShape;
-import sjmhrp.utils.VectorUtils;
+import sjmhrp.utils.GeometryUtils;
+import sjmhrp.utils.linear.Matrix3d;
+import sjmhrp.utils.linear.Quaternion;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class EPA {
 
@@ -51,9 +51,9 @@ public class EPA {
 				return;
 			case 2: {
 				final Vector3d d = Vector3d.sub(points[1], points[0]).getUnit();
-				final Vector3d minAxis = VectorUtils.minAxis(d);
-				final double sin60 = 0.86602540378443864676372317075294f;
-				final Quaternion rotQuat = new Quaternion(d.x*sin60,d.y*sin60,d.z*sin60,0.5f);
+				final Vector3d minAxis = GeometryUtils.minAxis(d);
+				final double sin60 = 0.86602540378443864676372317075294;
+				final Quaternion rotQuat = new Quaternion(d.x*sin60,d.y*sin60,d.z*sin60,0.5);
 				final Matrix3d rotMat = rotQuat.getRotationMatrix().to3Matrix();
 				final Vector3d v1 = Vector3d.cross(d,minAxis);
 				final Vector3d v2 = Matrix3d.transform(rotMat,v1);

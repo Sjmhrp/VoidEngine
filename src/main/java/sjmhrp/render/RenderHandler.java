@@ -1,24 +1,19 @@
 package sjmhrp.render;
 
 import static org.lwjgl.opengl.ARBDepthClamp.GL_DEPTH_CLAMP;
-import static org.lwjgl.opengl.GL11.GL_ALWAYS;
 import static org.lwjgl.opengl.GL11.GL_BACK;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_CULL_FACE;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
-import static org.lwjgl.opengl.GL11.GL_EQUAL;
-import static org.lwjgl.opengl.GL11.GL_FRONT;
-import static org.lwjgl.opengl.GL11.GL_GEQUAL;
-import static org.lwjgl.opengl.GL11.GL_KEEP;
+import static org.lwjgl.opengl.GL11.GL_FILL;
+import static org.lwjgl.opengl.GL11.GL_FRONT_AND_BACK;
 import static org.lwjgl.opengl.GL11.GL_LEQUAL;
-import static org.lwjgl.opengl.GL11.GL_ONE;
+import static org.lwjgl.opengl.GL11.GL_LINE;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
-import static org.lwjgl.opengl.GL11.GL_REPLACE;
 import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.GL_STENCIL_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLE_STRIP;
@@ -26,7 +21,6 @@ import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glBlendFunc;
 import static org.lwjgl.opengl.GL11.glClear;
-import static org.lwjgl.opengl.GL11.glColorMask;
 import static org.lwjgl.opengl.GL11.glCullFace;
 import static org.lwjgl.opengl.GL11.glDepthFunc;
 import static org.lwjgl.opengl.GL11.glDepthMask;
@@ -34,16 +28,15 @@ import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glDrawElements;
 import static org.lwjgl.opengl.GL11.glEnable;
-import static org.lwjgl.opengl.GL11.glStencilFunc;
-import static org.lwjgl.opengl.GL11.glStencilMask;
-import static org.lwjgl.opengl.GL11.glStencilOp;
+import static org.lwjgl.opengl.GL11.glPolygonMode;
 import static org.lwjgl.opengl.GL11.glViewport;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GL13;
@@ -52,47 +45,66 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GLContext;
 import org.lwjgl.opengl.PixelFormat;
 
-import sjmhrp.debug.DebugRenderer;
-import sjmhrp.entity.Entity;
-import sjmhrp.entity.EntityShader;
-import sjmhrp.flare.FlareRenderer;
-import sjmhrp.gui.BasicGUIComponent;
-import sjmhrp.gui.GUIShader;
-import sjmhrp.gui.text.FontShader;
-import sjmhrp.gui.text.FontType;
-import sjmhrp.gui.text.GUIText;
+import sjmhrp.audio.AudioHandler;
+import sjmhrp.event.KeyHandler;
 import sjmhrp.io.ConfigHandler;
 import sjmhrp.io.Log;
-import sjmhrp.light.Light;
-import sjmhrp.light.LightShader;
-import sjmhrp.light.SunLightShader;
-import sjmhrp.linear.Vector3d;
-import sjmhrp.models.ModelPool;
-import sjmhrp.models.RawModel;
-import sjmhrp.models.TexturedModel;
+import sjmhrp.particle.ParticleRenderer;
 import sjmhrp.physics.PhysicsEngine;
-import sjmhrp.post.Fbo;
-import sjmhrp.post.GBufferShader;
-import sjmhrp.post.Post;
-import sjmhrp.shaders.Shader;
-import sjmhrp.sky.CelestialBody;
-import sjmhrp.sky.SkyDome;
-import sjmhrp.sky.SkyRenderer;
-import sjmhrp.terrain.Terrain;
-import sjmhrp.terrain.TerrainShader;
-import sjmhrp.textures.ModelTexture;
-import sjmhrp.textures.TerrainTexture;
-import sjmhrp.utils.MatrixUtils;
+import sjmhrp.render.animation.AnimatedModel;
+import sjmhrp.render.debug.DebugRenderer;
+import sjmhrp.render.entity.Entity;
+import sjmhrp.render.entity.EntityShader;
+import sjmhrp.render.flare.FlareRenderer;
+import sjmhrp.render.gui.GUIBox;
+import sjmhrp.render.gui.GUIHandler;
+import sjmhrp.render.gui.GUIShader;
+import sjmhrp.render.gui.text.FontShader;
+import sjmhrp.render.gui.text.FontType;
+import sjmhrp.render.gui.text.GUIText;
+import sjmhrp.render.light.LightRenderer;
+import sjmhrp.render.models.ModelPool;
+import sjmhrp.render.models.RawModel;
+import sjmhrp.render.post.Fbo;
+import sjmhrp.render.post.GBufferShader;
+import sjmhrp.render.post.Post;
+import sjmhrp.render.shader.Shader;
+import sjmhrp.render.textures.ModelTexture;
+import sjmhrp.render.textures.TerrainTexture;
+import sjmhrp.render.view.Camera;
+import sjmhrp.render.view.Frustum;
 import sjmhrp.utils.Profiler;
-import sjmhrp.view.Camera;
-import sjmhrp.view.Frustum;
+import sjmhrp.utils.linear.Vector3d;
 import sjmhrp.world.World;
+import sjmhrp.world.sky.SkyRenderer;
+import sjmhrp.world.terrain.ChunkTree.ChunkNode;
+import sjmhrp.world.terrain.TerrainShader;
 
 public class RenderHandler {
 
-	static Fbo gBuffer;
+	public static Fbo gBuffer;
 	
-	public static void init(String title, int width, int height, boolean fullScreen) {
+	static Thread render;
+	static Camera camera;
+	
+	static ConcurrentHashMap<String,Runnable> uniqueTasks = new ConcurrentHashMap<String,Runnable>();
+	static List<Runnable> tasks = Collections.synchronizedList(new ArrayList<Runnable>());
+	static double timeStep;
+	
+	public static void start(String title, int width, int height, boolean fullScreen) {
+		render = new Thread() {
+			@Override
+			public void run() {
+				init(title,width,height,fullScreen);
+				loop();
+			}
+		};
+		render.setName("renderer");
+		render.setDaemon(true);
+		render.start();
+	}
+	
+	static void init(String title, int width, int height, boolean fullScreen) {
 		try {
 			Display.setTitle(title);
 			Display.setResizable(false);
@@ -104,19 +116,27 @@ public class RenderHandler {
 			glEnable(GL_DEPTH_TEST);
 			glDepthFunc(GL_LEQUAL);
 			glViewport(0,0,Display.getWidth(),Display.getHeight());
-			Mouse.setGrabbed(true);
 			if(GLContext.getCapabilities().GL_ARB_depth_clamp)glEnable(GL_DEPTH_CLAMP);
 			gBuffer = new Fbo(Display.getWidth(),Display.getHeight());
 			DebugRenderer.init();
 			Frustum.init();
 			ModelPool.init();
 			Post.init();
+			ParticleRenderer.init();
 			SSAORenderer.init();
 			FlareRenderer.init();
 			SkyRenderer.init();
+			Shader.init();
+			AudioHandler.init();
+			KeyHandler.init();
+			GUIHandler.createGUI();
 		} catch(Exception e) {
 			Log.printError(e);
 		}
+	}
+	
+	public static void setCamera(Camera camera) {
+		RenderHandler.camera=camera;
 	}
 	
 	public static void enableCulling() {
@@ -128,48 +148,93 @@ public class RenderHandler {
 		glDisable(GL_CULL_FACE);
 	}
 	
-	public static void renderWorld(World world, Camera camera, Shader shader) {
-		if(world==null) {
-			Display.sync(60);
-			Display.update();
-			return;
+	public static void addUniqueTask(String name, Runnable task) {
+		uniqueTasks.put(name,task);
+	}
+	
+	public static void addTask(Runnable task) {
+		tasks.add(task);
+	}
+	
+	public static double getTimeStep() {
+		return timeStep;
+	}
+	
+	static void loop() {
+		GUIHandler.switchToScreen("loading");
+		long time = System.nanoTime();
+		while(!Display.isCloseRequested()) {
+			double dt = System.nanoTime()-time;
+			time = System.nanoTime();
+			timeStep=dt/1000000000;
+			GUIHandler.tick(timeStep);
+			if(camera!=null)RenderHandler.render(camera);
 		}
+		exit();
+	}
+	
+	static void render(Camera camera) {
+		List<Runnable> ts = new ArrayList<Runnable>(tasks);
+		tasks.clear();
+		ts.addAll(uniqueTasks.values());
+		uniqueTasks.clear();
+		ts.stream().filter(t->t!=null).forEach(Runnable::run);
 		Profiler.drawCalls=0;
-		if(!PhysicsEngine.paused) {
+		if(!GUIHandler.isPaused()) {
+			camera.tick();
 			gBuffer.bindFrameBuffer();
 			clear();
 			glDisable(GL_BLEND);
-			renderEntities(shader.getEntityShader(),camera);
-			if(world.getTerrain()!=null&&world.getTerrain().size()>0)renderTerrain(shader.getTerrainShader(),world.getTerrain(),camera);
+			if(ConfigHandler.getBoolean("wireframe"))glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+			renderEntities(Shader.getEntityShader(),camera);
+			PhysicsEngine.getWorlds().forEach(world->{if(world!=null&&world.hasTerrain()&&world.getTerrain().size()>0)renderTerrain(Shader.getTerrainShader(),world.getTerrain(),world.getTerrainTexture(),camera);});
+			if(ConfigHandler.getBoolean("wireframe"))glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 			gBuffer.resolve(0,Post.albedo);
 			gBuffer.resolve(1,Post.normal);
-			doLighting(world,camera,shader);
-			SSAORenderer.renderSSAO(shader,camera);
+			gBuffer.resolve(2,Post.mask);
+			if(ConfigHandler.getBoolean("ssao"))SSAORenderer.renderSSAO(camera);
+			LightRenderer.renderLights(camera);
+			if(ConfigHandler.getBoolean("bloom")) {
+				Post.clear();
+				Post.addToPipeline(Shader.getEdgeHighlightShader());
+				Post.process(0,Post.bloom,true);
+				Post.clear();
+				Post.addToPipeline(Shader.getHBlurShader());
+				Post.addToPipeline(Shader.getVBlurShader());
+				Post.process(Post.bloom,Post.bloom);
+			}
 			Post.main.bindFrameBuffer();
 			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 			gBuffer.resolveDepth(Post.main);
 			Post.main.bindFrameBuffer();
-			renderScene(shader.getGBufferShader());
-			if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera,shader);
-			if(ConfigHandler.getBoolean("debug"))DebugRenderer.render(shader,world,camera);
+			renderScene(Shader.getGBufferShader());
+			PhysicsEngine.getWorlds().forEach(world->renderWorld(world,camera));
+			renderDecals(Shader.getEntityShader(),camera);
+			ParticleRenderer.renderParticles(camera,Shader.getParticleShader());
 			Post.main.unbindFrameBuffer();
-			FlareRenderer.renderFlares(shader,camera);
+			if(ConfigHandler.getBoolean("lensflare"))FlareRenderer.renderFlares(camera);
 			Post.clear();
-			if(ConfigHandler.getBoolean("fxaa"))Post.addToPipeline(shader.getFXAAShader());
-			Post.addToPipeline(shader.getContrastShader());
+			if(!ConfigHandler.getBoolean("bloom"))Post.addToPipeline(Shader.getEdgeHighlightShader());
+			if(ConfigHandler.getBoolean("fxaa"))Post.addToPipeline(Shader.getFXAAShader());
+			Post.addToPipeline(Shader.getContrastShader());
 		} else {
 			Post.clear();
-			shader.getTintShader().start();
-			shader.getTintShader().loadTint(new Vector3d(),0.7);
-			shader.getTintShader().stop();
-			Post.addToPipeline(shader.getHBlurShader());
-			Post.addToPipeline(shader.getVBlurShader());
-			Post.addToPipeline(shader.getTintShader());
+			Shader.getTintShader().start();
+			Shader.getTintShader().loadTint(new Vector3d(),0.7);
+			Shader.getTintShader().stop();
+			Post.addToPipeline(Shader.getHBlurShader(),1);
+			Post.addToPipeline(Shader.getVBlurShader(),1);
+			Post.addToPipeline(Shader.getTintShader());
 		}
 		Post.display(Post.main);
-		renderGUI(shader);
+		renderGUI();
 		Display.sync(60);
 		Display.update();
+	}
+	
+	static void renderWorld(World world, Camera camera) {
+		if(world.hasSky())SkyRenderer.renderSky(world.getSky(),camera);
+		if(ConfigHandler.getBoolean("debug"))DebugRenderer.render(world,camera);
 	}
 	
 	public static void renderQuad(int... textures) {
@@ -185,21 +250,52 @@ public class RenderHandler {
 		GL30.glBindVertexArray(0);
 	}
 
-	static void renderGUI(Shader s) {
+	static void renderDecals(EntityShader s, Camera c) {
+		s.start();
+		s.loadViewMatrix(c.getViewMatrix());
+		RawModel m = ModelPool.getModel("3quad");
+		s.loadIsAnimated(false);
+		GL30.glBindVertexArray(m.getVaoId());
+		GL20.glEnableVertexAttribArray(0);
+		GL20.glEnableVertexAttribArray(1);
+		GL20.glEnableVertexAttribArray(2);
+		for(Entry<ModelTexture,ArrayList<Entity>> e : RenderRegistry.getDecals().entrySet()) {
+			ModelTexture t = e.getKey();
+			s.loadRows(t.getNumberOfRows());
+			s.loadFakeLighting(t.getFakeLighting());
+			s.loadNormals(t.getNormalID()!=0);
+			s.loadSpecular(t.getSpecularID()!=0);				
+			glDisable(GL_BLEND);
+			GL13.glActiveTexture(GL13.GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, t.getAlbedoID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, t.getNormalID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, t.getSpecularID());
+			for(Entity entity : e.getValue()) {
+				s.loadReflect(entity.getReflectivity());
+				renderEntity(entity,s,c);
+			}
+		}
+		unbind();
+		s.stop();
+	}
+	
+	static void renderGUI() {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 		glDisable(GL_DEPTH_TEST);
-		s.getGUIShader().start();
-		for(BasicGUIComponent g : RenderRegistry.getGUI()) {
-			if(g.isActive())renderBasicGUIComponent(s.getGUIShader(),g);
+		Shader.getGUIShader().start();
+		for(GUIBox g : RenderRegistry.getGUI()) {
+			if(g.isActive())renderBasicGUIComponent(Shader.getGUIShader(),g);
 		}
-		s.getGUIShader().stop();
-		renderGUIText(s.getFontShader());
+		Shader.getGUIShader().stop();
+		renderGUIText(Shader.getFontShader());
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 	}
 	
-	static void renderBasicGUIComponent(GUIShader s, BasicGUIComponent g) {
+	static void renderBasicGUIComponent(GUIShader s, GUIBox g) {
 		s.load(g);
 		GL30.glBindVertexArray(g.getModel().getVaoId());
 		GL20.glEnableVertexAttribArray(0);
@@ -236,133 +332,69 @@ public class RenderHandler {
 		s.start();
 		glDepthMask(false);
 		glDisable(GL_DEPTH_TEST);
-		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),SSAORenderer.SSAO2.getColourTexture(),Post.albedo.getDepthTexture());
+		renderQuad(Post.albedo.getColourTexture(),Post.light.getColourTexture(),SSAORenderer.SSAO2.getColourTexture(),ConfigHandler.getBoolean("bloom")?Post.bloom.getColourTexture():0,Post.albedo.getDepthTexture());
 		glEnable(GL_DEPTH_TEST);
 		glDepthMask(true);
 		s.stop();
 	}
 	
-	static void doLighting(World w, Camera c, Shader s) {
-		gBuffer.resolveDepth(Post.light);
-		Post.light.bindFrameBuffer();
-		glClear(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_ONE,GL_ONE);
-		glDepthMask(false);
-		if(w.hasSky()&&w.getSky().getBodies().size()>0)renderSunLight(w.getSky(),s.getSunLightShader(),c);
-		renderLights(s.getLightShader(),c);
-		glDepthMask(true);
-		glDisable(GL_BLEND);
-		Post.light.unbindFrameBuffer();
-	}
-
-	static void renderSunLight(SkyDome sky, SunLightShader s, Camera c) {
+	public static void renderTerrain(TerrainShader s, ArrayList<ChunkNode> terrain, TerrainTexture tex, Camera c) {
 		s.start();
-		s.loadViewMatrix(c.getRotMatrix());
-		for(CelestialBody b : sky.getBodies()) {
-			s.load(b);
-			renderQuad(Post.albedo.getColourTexture(),Post.normal.getColourTexture(),Post.albedo.getDepthTexture());
-		}
-		s.stop();
-	}
-	
-	static void renderLights(LightShader s, Camera c) {
-		s.start();
-		s.loadViewMatrix(c.getViewMatrix());
-		GL30.glBindVertexArray(ModelPool.getModel("pointLight").getVaoId());
-		GL20.glEnableVertexAttribArray(0);
-		GL13.glActiveTexture(GL13.GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Post.albedo.getColourTexture());
-		GL13.glActiveTexture(GL13.GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, Post.normal.getColourTexture());
-		GL13.glActiveTexture(GL13.GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, Post.albedo.getDepthTexture());
-		glEnable(GL_STENCIL_TEST);
-		for(Light l : RenderRegistry.getLights()) {
-			s.loadTransformMatrix(MatrixUtils.createTransform(l.getPos(),l.getSize()));
-			s.loadLight(l);
-			renderLightFirstPass(s,l);
-			renderLightSecondPass(s,l);
-		}
-		glDisable(GL_STENCIL_TEST);
-		GL20.glDisableVertexAttribArray(0);
-		GL30.glBindVertexArray(0);
-		s.stop();
-	}
-
-	static void renderLightFirstPass(LightShader s, Light l) {
-		glColorMask(false,false,false,false);
-		glStencilFunc(GL_ALWAYS,1,0xFF);
-		glStencilOp(GL_KEEP,GL_REPLACE,GL_KEEP);
-		glStencilMask(0xFF);
-		glClear(GL_STENCIL_BUFFER_BIT);
-		renderLight(s,l);
-		glColorMask(true,true,true,false);
-	}
-
-	static void renderLightSecondPass(LightShader s, Light l) {
-		glCullFace(GL_FRONT);
-		glDepthFunc(GL_GEQUAL);
-		glStencilFunc(GL_EQUAL,0,0xFF);
-		glStencilMask(0x00);
-		renderLight(s,l);
-		glDepthFunc(GL_LEQUAL);
-		glCullFace(GL_BACK);
-		glColorMask(true,true,true,true);
-	}
-
-	static void renderLight(LightShader s, Light l) {
-		glDrawElements(GL_TRIANGLES,ModelPool.getModel("pointLight").getVertexCount(),GL_UNSIGNED_INT, 0);
-		Profiler.drawCalls++;
-	}
-
-	static void renderTerrain(TerrainShader s, ArrayList<Terrain> terrain, Camera c) {
-		s.start();
-		for(Terrain te : terrain) {
-			RawModel m = te.getModel();
-			GL30.glBindVertexArray(m.getVaoId());
-			GL20.glEnableVertexAttribArray(0);
-			GL20.glEnableVertexAttribArray(1);
-			GL20.glEnableVertexAttribArray(2);
-			TerrainTexture t = te.getTexture();
-			GL13.glActiveTexture(GL13.GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D,t.getBackground().getAlbedoID());
-			if(t.useBlend()) {
-				GL13.glActiveTexture(GL13.GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D,t.getRTexture().getAlbedoID());
-				GL13.glActiveTexture(GL13.GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_2D,t.getGTexture().getAlbedoID());
-				GL13.glActiveTexture(GL13.GL_TEXTURE3);
-				glBindTexture(GL_TEXTURE_2D,t.getBTexture().getAlbedoID());
-				GL13.glActiveTexture(GL13.GL_TEXTURE4);
-				glBindTexture(GL_TEXTURE_2D,t.getBlendMap().getAlbedoID());
-			}
-			s.loadUseBlend(t.useBlend());
-			s.loadTransformMatrix(MatrixUtils.createTransform(new Vector3d(te.getX(),0,te.getZ())));
-			s.loadViewMatrix(c.getViewMatrix());
-			glDrawElements(GL_TRIANGLES, m.getVertexCount(), GL_UNSIGNED_INT, 0);
-			Profiler.drawCalls++;
-			unbind();
+		for(ChunkNode te : terrain) {
+			if(!Frustum.isVisible(te.getBounds()))continue;
+			renderTerrain(te,s,te.getModel(),tex,c);
+			if(te.hasSeam())renderTerrain(te,s,te.getSeamModel(),tex,c);
 		} 
 		s.stop();
 	}
-
+	
+	static void renderTerrain(ChunkNode te, TerrainShader s, RawModel m, TerrainTexture tex, Camera c) {
+		if(m==null)return;
+		GL30.glBindVertexArray(m.getVaoId());
+		GL20.glEnableVertexAttribArray(0);
+		GL20.glEnableVertexAttribArray(1);
+		GL13.glActiveTexture(GL13.GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D,tex.getBackground().getAlbedoID());
+		if(tex.useBlend()) {
+			GL13.glActiveTexture(GL13.GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D,tex.getRTexture().getAlbedoID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D,tex.getGTexture().getAlbedoID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D,tex.getBTexture().getAlbedoID());
+			GL13.glActiveTexture(GL13.GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D,tex.getBlendMap().getAlbedoID());
+		}
+		s.loadUseBlend(tex.useBlend());
+		s.loadViewMatrix(c.getViewMatrix());
+		glDrawElements(GL_TRIANGLES, m.getVertexCount(), GL_UNSIGNED_INT, 0);
+		Profiler.drawCalls++;
+		unbind();
+	}
+	
 	static void renderEntities(EntityShader s, Camera c) {
 		s.start();
-		for(Entry<RawModel,HashMap<ModelTexture,ArrayList<Entity>>> e : RenderRegistry.getEntities().entrySet()) {
+		s.loadViewMatrix(c.getViewMatrix());
+		for(Entry<RawModel,ConcurrentHashMap<ModelTexture,List<Entity>>> e : RenderRegistry.getEntities().entrySet()) {
 			RawModel m = e.getKey();
+			boolean animated = m instanceof AnimatedModel;
+			if(animated) {
+				s.loadJointTransforms(((AnimatedModel)m).getJointTransforms());
+				s.loadIsAnimated(true);
+			} else {
+				s.loadIsAnimated(false);
+			}
 			GL30.glBindVertexArray(m.getVaoId());
 			GL20.glEnableVertexAttribArray(0);
 			GL20.glEnableVertexAttribArray(1);
 			GL20.glEnableVertexAttribArray(2);
-			HashMap<ModelTexture,ArrayList<Entity>> map = e.getValue();
-			for(Entry<ModelTexture,ArrayList<Entity>> e2 : map.entrySet()) {
+			if(animated) {
+				GL20.glEnableVertexAttribArray(3);
+				GL20.glEnableVertexAttribArray(4);
+			}
+			ConcurrentHashMap<ModelTexture,List<Entity>> map = e.getValue();
+			for(Entry<ModelTexture,List<Entity>> e2 : map.entrySet()) {
 				ModelTexture t = e2.getKey();
-				if(t.getTransparency()) {
-					disableCulling();
-				} else {
-					enableCulling();
-				}
 				s.loadRows(t.getNumberOfRows());
 				s.loadFakeLighting(t.getFakeLighting());
 				s.loadNormals(t.getNormalID()!=0);
@@ -374,7 +406,7 @@ public class RenderHandler {
 				glBindTexture(GL_TEXTURE_2D, t.getNormalID());
 				GL13.glActiveTexture(GL13.GL_TEXTURE2);
 				glBindTexture(GL_TEXTURE_2D, t.getSpecularID());
-				ArrayList<Entity> es = e2.getValue();
+				List<Entity> es = e2.getValue();
 				for(Entity e3 : es) {
 					s.loadReflect(e3.getReflectivity());
 					renderEntity(e3,s,c);
@@ -385,13 +417,19 @@ public class RenderHandler {
 		s.stop();
 	}
 	
-	public static void renderEntity(Entity e, EntityShader shader, Camera c) {
-		TexturedModel tm = e.getModel();
-		RawModel m = tm.getRawModel();
-		shader.loadOffset(e.getTextureXOffset(),e.getTextureYOffset());
-		shader.loadTransformMatrix(e.getTransformMatrix());
-		shader.loadViewMatrix(c.getViewMatrix());
+	public static void renderEntity(Entity e, EntityShader s, Camera c) {
+		RawModel m = e.getModel();
+		if(e.getTexture().getTransparency()||e.isWireFrame()||ConfigHandler.getBoolean("wireframe")) {
+			disableCulling();
+		} else {
+			enableCulling();
+		}
+		s.loadOffset(e.getTextureXOffset(),e.getTextureYOffset());
+		s.loadTransformMatrix(e.getTransformMatrix());
+		s.loadHighlight(e.isHighlighted());
+		if(!ConfigHandler.getBoolean("wireframe")&&e.isWireFrame())glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 		glDrawElements(GL_TRIANGLES, m.getVertexCount(), GL_UNSIGNED_INT, 0);
+		if(!ConfigHandler.getBoolean("wireframe")&&e.isWireFrame())glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 		Profiler.drawCalls++;
 	}
 	
@@ -411,7 +449,40 @@ public class RenderHandler {
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 	}
 
-	public static void cleanUp() {
+	public static void clearMain() {
+		if(!isRenderer()) {
+			addTask(RenderHandler::clearMain);
+			return;
+		}
+		Post.main.bindFrameBuffer();
+		clear();
+		Post.main.unbindFrameBuffer();
+	}
+	
+	public static void exit() {
+		if(!isRenderer()) {
+			addTask(RenderHandler::exit);
+			return;
+		}
+		Loader.cleanUp();
+		Shader.cleanUp();
+		RenderHandler.cleanUp();
+		Post.cleanUp();
+		SSAORenderer.cleanUp();
+		FlareRenderer.cleanUp();
+		AudioHandler.cleanUp();
+		System.exit(0);
+	}
+	
+	public static boolean isRenderer() {
+		return Thread.currentThread().getName().equals("renderer");
+	}
+	
+	public static boolean isRendering() {
+		return render.isAlive();
+	}
+	
+	static void cleanUp() {
 		gBuffer.cleanUp();
 	}
 }

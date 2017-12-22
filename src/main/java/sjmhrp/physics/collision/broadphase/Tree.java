@@ -3,21 +3,21 @@ package sjmhrp.physics.collision.broadphase;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.utils.GeometryUtils;
+import sjmhrp.utils.linear.Vector3d;
 
-public class Tree implements Serializable {
+public class Tree<T> implements Serializable {
 	
 	private static final long serialVersionUID = -5947015951035884776L;
 	
-	public Node root;
+	public Node<T> root;
 	int leaves = 0;
 
-	public ArrayList<Object> getAll() {
-		ArrayList<Node> nodes = root.getAll();
-		ArrayList<Object> o = new ArrayList<Object>();
-		for(Node n : nodes) {
+	public ArrayList<T> getAll() {
+		ArrayList<Node<T>> nodes = root.getAll();
+		ArrayList<T> o = new ArrayList<T>();
+		for(Node<T> n : nodes) {
 			if(n.data!=null)o.add(n.getData());
 		}
 		return o;
@@ -27,11 +27,18 @@ public class Tree implements Serializable {
 		return root.height;
 	}
 
-	public ArrayList<Object> query(AABB box) {
+	public ArrayList<T> query(AABB box) {
+		if(root==null)return new ArrayList<T>();
 		return root.query(box);
 	}
 
-	public ArrayList<Object> query(Ray ray) {
+	public ArrayList<T> query(Vector3d point) {
+		if(root==null)return new ArrayList<T>();
+		return root.query(point);
+	}
+	
+	public ArrayList<T> query(Ray ray) {
+		if(root==null)return new ArrayList<T>();
 		return root.query(ray);
 	}
 	
@@ -39,23 +46,23 @@ public class Tree implements Serializable {
 		root.translate(t);
 	}
 
-	public void add(AABB aabb, Object data) {
-		Node n = new Node(aabb, data);
+	public void add(AABB aabb, T data) {
+		Node<T> n = new Node<T>(aabb,data);
 		insertLeaf(n);
 		leaves++;
 	}
 
-	public void insertLeaf(Node leaf) {
+	public void insertLeaf(Node<T> leaf) {
 		if(root==null) {
 			root = leaf;
 			leaf.parent = null;
 			return;
 		}
 		AABB leafAABB = leaf.boundingBox;
-		Node node = root;
+		Node<T> node = root;
 		while(!node.isLeaf()) {
-			Node left = node.left;
-			Node right = node.right;
+			Node<T> left = node.left;
+			Node<T> right = node.right;
 			AABB combined = GeometryUtils.combine(left.boundingBox, right.boundingBox);
 			double cost = 2 * combined.getArea();
 			double inheritanceCost = 2 * (combined.getArea()-node.boundingBox.getArea());
@@ -78,9 +85,9 @@ public class Tree implements Serializable {
 			}
 			node = costLeft<costRight?left:right;
 		}
-		Node oldParent = node.parent;
+		Node<T> oldParent = node.parent;
 		AABB a = GeometryUtils.combine(leafAABB, node.boundingBox);
-		Node newParent = new Node(a,null);
+		Node<T> newParent = new Node<T>(a,null);
 		newParent.parent = oldParent;
 		newParent.height = node.height+1;
 		if(oldParent!=null) {
@@ -103,16 +110,16 @@ public class Tree implements Serializable {
 		syncHierarchy(leaf.parent);
 	}
 
-	public Node balance(Node a) {
+	public Node<T> balance(Node<T> a) {
 		if(a.isLeaf()||a.height<2) {
 			return a;
 		}
-		Node b = a.left;
-		Node c = a.right;
+		Node<T> b = a.left;
+		Node<T> c = a.right;
 		int balance = c.height-b.height;
 		if(balance>1) {
-			Node f = c.left;
-			Node g = c.right;
+			Node<T> f = c.left;
+			Node<T> g = c.right;
 			c.left=a;
 			c.parent=a.parent;
 			a.parent=c;
@@ -145,8 +152,8 @@ public class Tree implements Serializable {
 			return c;
 		}
 		if(balance>-1) {
-			Node d = b.left;
-			Node e = b.right;
+			Node<T> d = b.left;
+			Node<T> e = b.right;
 			b.left=a;
 			b.parent=a.parent;
 			a.parent=b;
@@ -181,12 +188,12 @@ public class Tree implements Serializable {
 		return a;
 	}
 
-	public void syncHierarchy(Node node) {
-		Node n = node;
+	public void syncHierarchy(Node<T> node) {
+		Node<T> n = node;
 		while(n!=null) {
 			n = balance(n);
-			Node left = n.left;
-			Node right = n.right;
+			Node<T> left = n.left;
+			Node<T> right = n.right;
 			n.height = 1+Math.max(left.height, right.height);
 			n.boundingBox = GeometryUtils.combine(left.boundingBox, right.boundingBox);
 			n = n.parent;
@@ -194,8 +201,8 @@ public class Tree implements Serializable {
 	}
 
 	public void rebuild() {
-		ArrayList<Node> nodes = root.getAll();
-		for(Node n : nodes) {
+		ArrayList<Node<T>> nodes = root.getAll();
+		for(Node<T> n : nodes) {
 			n.boundingBox.update();
 			if(n.parent!=null&&!GeometryUtils.contains(n.parent.boundingBox, n.boundingBox)) {
 				remove(n);
@@ -204,15 +211,15 @@ public class Tree implements Serializable {
 		}
 	}
 
-	public void cull(Node node) {
-		Node n = node;
+	public void cull(Node<T> node) {
+		Node<T> n = node;
 		while(n.data==null&&n.left==null&&n.right==null) {
 			remove(n);
 			n=n.parent;
 		}
 	}
 
-	public void remove(Node leaf) {
+	public void remove(Node<T> leaf) {
 		if(leaf.isLeaf()) {
 			if(leaf.parent.left==leaf) {
 				leaf.parent.left=leaf.left;
@@ -222,5 +229,92 @@ public class Tree implements Serializable {
 			}
 		}
 		cull(leaf.parent);
+	}
+	
+	public static class Node<T> implements Serializable {
+		
+		private static final long serialVersionUID = -393595206105143426L;
+		
+		Node<T> parent;
+		Node<T> left;
+		Node<T> right;
+		AABB boundingBox;
+		int height;
+		T data;
+
+		public Node(AABB box, T d) {
+			boundingBox = box;
+			data = d;
+		}
+
+		public T getData() {
+			return data;
+		}
+		
+		public ArrayList<T> query(AABB box) {
+			ArrayList<T> o = new ArrayList<T>();
+			if(GeometryUtils.intersects(box, boundingBox)) {
+				if(isLeaf()&&boundingBox!=box)o.add(data);
+				if(left!=null)o.addAll(left.query(box));
+				if(right!=null)o.addAll(right.query(box));
+			}
+			return o;
+		}
+		
+		public ArrayList<T> query(Vector3d point) {
+			ArrayList<T> o = new ArrayList<T>();
+			if(GeometryUtils.contains(boundingBox,point)) {
+				if(isLeaf())o.add(data);
+				if(left!=null)o.addAll(left.query(point));
+				if(right!=null)o.addAll(right.query(point));
+			}
+			return o;
+		}
+		
+		public ArrayList<T> query(Ray ray) {
+			ArrayList<T> o = new ArrayList<T>();
+			if(GeometryUtils.intersects(ray,boundingBox)) {
+				if(isLeaf())o.add(data);
+				if(left!=null)o.addAll(left.query(ray));
+				if(right!=null)o.addAll(right.query(ray));
+			}
+			return o;
+		}
+		
+		public boolean isLeaf() {
+			return right==null;
+		}
+
+		public int getSize() {
+			return 1 + (left==null?0:left.getSize()) + (right==null?0:right.getSize());
+		}
+
+		public ArrayList<Node<T>> getAll() {
+			ArrayList<Node<T>> n = new ArrayList<Node<T>>();
+			if(isLeaf())n.add(this);
+			if(left!=null)n.addAll(left.getAll());
+			if(right!=null)n.addAll(right.getAll());
+			return n;
+		}
+		
+		public int getDepth() {
+			return height;
+		}
+
+		public AABB getBoundingBox() {
+			return boundingBox;
+		}
+
+		public void translate(Vector3d t) {
+			boundingBox.getCenter().add(t);
+			boundingBox.update();
+			if(left!=null)left.translate(t);
+			if(right!=null)right.translate(t);
+		}
+
+		@Override
+		public String toString() {
+			return "{"+boundingBox+","+left+","+right+"}";
+		}
 	}
 }

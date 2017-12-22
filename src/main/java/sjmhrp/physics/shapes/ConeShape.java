@@ -1,9 +1,9 @@
 package sjmhrp.physics.shapes;
 
-import sjmhrp.linear.Matrix4d;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.collision.broadphase.AABB;
+import sjmhrp.utils.linear.Matrix4d;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
 
 public class ConeShape extends ConvexShape {
 
@@ -58,6 +58,11 @@ public class ConeShape extends ConvexShape {
 		return implicitShapeDimensions.x*localScaling.x;
 	}
 
+	public double getVolume() {
+		double r = getRadius();
+		return Math.PI*r*r*getHeight()/3d;
+	}
+	
 	@Override
 	public String getName() {
 		return "CONE";

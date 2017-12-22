@@ -1,16 +1,15 @@
 package sjmhrp.world;
 
+import static sjmhrp.utils.linear.Vector3d.scale;
+import static java.lang.Math.*;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Random;
 
 import sjmhrp.core.Globals;
-import sjmhrp.debug.DebugRenderer;
 import sjmhrp.io.ConfigHandler;
-import sjmhrp.linear.Transform;
-import sjmhrp.linear.Vector3d;
 import sjmhrp.physics.PhysicsEngine;
 import sjmhrp.physics.collision.CollisionHandler;
 import sjmhrp.physics.collision.Manifold;
@@ -23,14 +22,24 @@ import sjmhrp.physics.dynamics.Island;
 import sjmhrp.physics.dynamics.Ray;
 import sjmhrp.physics.dynamics.RigidBody;
 import sjmhrp.physics.dynamics.forces.Force;
-import sjmhrp.sky.SkyDome;
-import sjmhrp.sky.Sun;
-import sjmhrp.terrain.DefaultHeightGenerator;
-import sjmhrp.terrain.HeightMapGenerator;
-import sjmhrp.terrain.PerlinNoiseGenerator;
-import sjmhrp.terrain.Terrain;
-import sjmhrp.textures.TerrainTexture;
+import sjmhrp.physics.shapes.CollisionShape;
+import sjmhrp.render.RenderHandler;
+import sjmhrp.render.debug.DebugRenderer;
+import sjmhrp.render.textures.TerrainTexture;
+import sjmhrp.utils.GeometryUtils;
 import sjmhrp.utils.LimitedStack;
+import sjmhrp.utils.Profiler;
+import sjmhrp.utils.VectorUtils;
+import sjmhrp.utils.linear.Transform;
+import sjmhrp.utils.linear.Vector3d;
+import sjmhrp.world.sky.SkyDome;
+import sjmhrp.world.sky.Sun;
+import sjmhrp.world.terrain.ChunkTree;
+import sjmhrp.world.terrain.ChunkTree.ChunkNode;
+import sjmhrp.world.terrain.Octree;
+import sjmhrp.world.terrain.generator.CompoundTerrainGenerator;
+import sjmhrp.world.terrain.generator.TerrainGenerator;
+import sjmhrp.world.terrain.generator.TerrainShape;
 
 public class World implements Serializable{
 
@@ -41,20 +50,20 @@ public class World implements Serializable{
 	ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>();
 	ArrayList<RigidBody> rigidBodies = new ArrayList<RigidBody>();
 	transient HashMap<CollisionBody,Transform> predictedTransforms = new HashMap<CollisionBody,Transform>();
-	transient LimitedStack<WorldState> states;
-	ArrayList<Terrain> heightField = new ArrayList<Terrain>();
+	transient LimitedStack<WorldState> states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
+	TerrainGenerator terrainGenerator;
+	TerrainTexture terrainTexture;
+	transient ChunkTree terrain;
 	ArrayList<Force> forces = new ArrayList<Force>();
 	ArrayList<Manifold> manifolds = new ArrayList<Manifold>();
 	ArrayList<Joint> joints = new ArrayList<Joint>();
 	transient ArrayList<Island> islands = new ArrayList<Island>();
 
-	Vector3d gravity = new Vector3d();
-
-	public World() {
-		states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
-		PhysicsEngine.registerWorld(this);
-	}
-
+	Vector3d center = new Vector3d();
+	double mass;
+	
+	{PhysicsEngine.registerWorld(this);}
+	
 	public void generateSky() {
 		sky = new SkyDome();
 	}
@@ -75,45 +84,79 @@ public class World implements Serializable{
 		sky.loadStars("hip2");
 	}
 	
-	public void generateFlatTerrain(int size, TerrainTexture terrainTexture) {
-		for(int i = -size; i<=size;i++) {
-			for(int j=-size;j<=size;j++) {
-				Terrain t = new Terrain(i,j,terrainTexture,new DefaultHeightGenerator());
-				heightField.add(t);
-				t.getMesh().setWorld(this);
-			}
-		}
-	}
 
-	public void generateRandomTerrain(int size, TerrainTexture terrainTexture) {
-		generateRandomTerrain(size,new Random().nextInt(1000000000),terrainTexture);
+	public void setTerrain(TerrainGenerator gen, String texture) {
+		setTerrain(gen,new TerrainTexture(texture));
 	}
 	
-	public void generateRandomTerrain(int size, int seed, TerrainTexture terrainTexture) {
-		for(int i = -size; i<=size;i++) {
-			for(int j=-size;j<=size;j++) {
-				Terrain t = new Terrain(i,j,terrainTexture,new PerlinNoiseGenerator(i,j,seed));
-				heightField.add(t);
-				t.getMesh().setWorld(this);
+	public void setTerrain(TerrainGenerator gen, TerrainTexture texture) {
+		setTerrainGenerator(gen);
+		setTerrainTexture(texture);
+	}
+	
+	public void setTerrainGenerator(TerrainGenerator gen) {
+		terrainGenerator=gen;
+	}
+	
+	public void setTerrainTexture(TerrainTexture texture) {
+		terrainTexture=texture;
+	}
+	
+	public void place(TerrainShape shape) {
+		if(terrainGenerator==null)return;
+		if(!(terrainGenerator instanceof CompoundTerrainGenerator))terrainGenerator=new CompoundTerrainGenerator(terrainGenerator);
+		((CompoundTerrainGenerator)terrainGenerator).place(shape);
+	}
+	
+	public void setTerrain(ChunkTree terrain) {
+		this.terrain=terrain;
+	}
+	
+	public ChunkTree generateTerrain() {
+		Vector3d p = new Vector3d();
+		int maxSize = 128;
+		ChunkTree terrain=new ChunkTree();
+		Vector3d cMin = VectorUtils.chunkMin(maxSize,p);
+		for(int i = -1; i <= 1; i++) {
+			for(int j = -1; j <= 1; j++) {
+				for(int k = -1; k <= 1; k++) {
+					Vector3d min = new Vector3d(i,j,k).scale(maxSize).add(cMin);
+					Vector3d centre = new Vector3d(maxSize/2).add(min);
+					double d = GeometryUtils.distance(p,centre);
+					if(d>maxSize) {
+						ChunkNode n = new ChunkNode(min,maxSize,null,true);
+						n.generate(terrainGenerator);
+						terrain.addNode(n);
+						continue;
+					} else {
+						int size = maxSize;
+						Vector3d pos = GeometryUtils.closest(min,size,p);
+						while(size>ChunkTree.VOXEL_COUNT) {
+							Vector3d chunkMin = VectorUtils.chunkMin(size,pos);
+							size/=2;
+							Vector3d c = VectorUtils.chunkMin(size,pos);
+							for(Vector3d v : Octree.CHILD_MIN_OFFSETS) {
+								Vector3d m = scale(size,v).add(chunkMin);
+								if(size>ChunkTree.VOXEL_COUNT&&m.equals(c))continue;
+								ChunkNode n = new ChunkNode(m,size,null,true);
+								n.generate(terrainGenerator);
+								terrain.addNode(n);
+							}
+						}
+					}
+				}
 			}
 		}
+		terrain.getAll().stream().filter(n->n.hasChanged()).forEach(n->n.addSeam(terrain.findSeamNodes(n),terrainGenerator,terrain));
+		RenderHandler.addTask(()->terrain.createModels());
+		return terrain;
 	}
-
-	public void generateHeightMapTerrain(int size, String heightmapTexture, TerrainTexture terrainTexture) {
-		for(int i = -size; i<=size;i++) {
-			for(int j=-size;j<=size;j++) {
-				Terrain t = new Terrain(i,j,terrainTexture,new HeightMapGenerator(heightmapTexture));
-				heightField.add(t);
-				t.getMesh().setWorld(this);
-			}
-		}
-	}
-
-	public void setGravity(Vector3d gravity) {
-		this.gravity = gravity;
-		for(RigidBody b : rigidBodies) {
-			b.setGravity(Vector3d.scale(b.getMass(),gravity));
-		}
+	
+	
+	
+	public void setGravity(Vector3d center, double mass) {
+		this.center=center;
+		this.mass=mass;
 	}
 
 	public boolean hasSky() {
@@ -124,10 +167,26 @@ public class World implements Serializable{
 		return sky;
 	}
 	
-	public Vector3d getGravity() {
-		return gravity;
+	public Vector3d getGravityCenter() {
+		return center;
 	}
 
+	public double getMass() {
+		return mass;
+	}
+	
+	public Vector3d getGravity(RigidBody body) {
+		Vector3d d = Vector3d.sub(center,body.getPosition());
+		double r2 = d.lengthSquared();
+		if(r2==0)return new Vector3d();
+		return d.getUnit().scale(Globals.GRAVITATIONAL*mass*body.getMass()/r2);
+	}
+	
+	public Vector3d getGravityDir(RigidBody body) {
+		Vector3d d = Vector3d.sub(center,body.getPosition());
+		return d.lengthSquared()==0?new Vector3d():d.normalize();
+	}
+	
 	public ArrayList<CollisionBody> getCollisionBodies() {
 		return bodies;
 	}
@@ -136,14 +195,29 @@ public class World implements Serializable{
 		return rigidBodies;
 	}
 
-	public ArrayList<Terrain> getTerrain() {
-		return heightField;
+	public boolean hasTerrain() {
+		return terrain!=null;
+	}
+	
+	public ArrayList<ChunkNode> getTerrain() {
+		return terrain.getAll();
+	}
+	
+	public TerrainGenerator getTerrainGenerator() {
+		return terrainGenerator;
+	}
+	
+	public TerrainTexture getTerrainTexture() {
+		return terrainTexture;
 	}
 	
 	public void reload() {
 		states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
 		predictedTransforms = new HashMap<CollisionBody,Transform>();
 		islands = new ArrayList<Island>();
+		terrainGenerator.reload();
+		terrainTexture.reload();
+		setTerrain(generateTerrain());
 		sky.reloadStars();
 	}
 	
@@ -151,20 +225,11 @@ public class World implements Serializable{
 		bodies.clear();
 		rigidBodies.clear();
 		predictedTransforms.clear();
-		heightField.clear();
+		terrain=null;
 		forces.clear();
 		manifolds.clear();
 		joints.clear();
 		states = new LimitedStack<WorldState>(Globals.MAX_REWIND_FRAMES);
-	}
-
-	public double getHeight(double x, double z) {
-		for(Terrain t : heightField) {
-			if(x>=t.getX()&&x<t.getX()+Terrain.SIZE&&z>=t.getZ()&&z<t.getZ()+Terrain.SIZE) {
-				return t.getHeight(x,z);
-			}
-		}
-		return -1000;
 	}
 
 	Transform getPredictedTransform(CollisionBody b) {
@@ -175,15 +240,19 @@ public class World implements Serializable{
 		return b.getBoundingBox(getPredictedTransform(b));
 	}
 
+	public ArrayList<Manifold> getCollisions(CollisionBody b) {
+		ArrayList<Manifold> result = new ArrayList<Manifold>();
+		for(Manifold m : manifolds) {
+			if(m.body1==b||m.body2==b)result.add(m);
+		}
+		return result;
+	}
+	
 	public void addBody(CollisionBody b) {
 		if(b.getBoundingBox()==null)return;
 		bodies.add(b);
 		b.setWorld(this);
-		if(b instanceof RigidBody) {
-			RigidBody r = (RigidBody)b;
-			r.setGravity(Vector3d.scale(r.getMass(),gravity));
-			rigidBodies.add(r);
-		}
+		if(b instanceof RigidBody)rigidBodies.add((RigidBody)b);
 	}
 
 	public void addJoint(Joint j) {
@@ -196,46 +265,99 @@ public class World implements Serializable{
 		f.setWorld(this);
 	}
 
+	public void removeBody(CollisionBody b) {
+		bodies.remove(b);
+		for(Joint j : new ArrayList<Joint>(joints)) {
+			if(j.getBody1()==b||j.getBody2()==b)removeJoint(j);
+		}
+	}
+	
+	public void removeJoint(Joint j) {
+		joints.remove(j);
+	}
+	
+	public void removeForce(Force f) {
+		forces.remove(f);
+	}
+	
 	public RaycastResult raycast(Ray ray) {
-		Tree tree = new Tree();
+		return raycast(ray,null);
+	}
+	
+	public RaycastResult raycast(Ray ray, CollisionBody exception) {
+		Tree<CollisionBody> tree = new Tree<CollisionBody>();
 		ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>(this.bodies);
-		for(Terrain t : heightField) {
-			bodies.add(t.getMesh());
-		}
-		for(CollisionBody b : bodies) {
-			tree.add(getPredictedBoundingBox(b),b);
-		}
-		RaycastResult result = null;
-		for(Object body : tree.query(ray)) {
-			if(body instanceof CollisionBody) {
-				RaycastResult r = CollisionHandler.raycast(ray,(CollisionBody)body);
-				if((result==null||r.getDistance()<result.getDistance())&&r.collides())result=r;
+		if(terrain!=null) {
+			for(ChunkNode t : terrain.getAll()) {
+				if(t.getMesh()!=null)bodies.add(t.getMesh());
+				if(t.hasSeam()&&t.getSeamMesh()!=null)bodies.add(t.getSeamMesh());
 			}
 		}
-		return result==null?new RaycastResult():result;
+		bodies.remove(exception);
+		Profiler.start();
+		for(CollisionBody b : bodies) {
+			tree.add(b.getBoundingBox(b.isStaticTriMesh()?new Transform():b.getTransform()),b);
+		}
+		RaycastResult result = null;
+		for(CollisionBody body : tree.query(ray)) {
+			RaycastResult r = CollisionHandler.raycast(ray,(CollisionBody)body);
+			if((result==null||r.distance()<result.distance())&&r.collides())result=r;
+		}
+		return result==null?new RaycastResult(ray):result;
+	}
+
+	public ArrayList<CollisionBody> getCollisions(CollisionShape shape, Transform transform) {
+		ArrayList<CollisionBody> bs = new ArrayList<CollisionBody>();
+		RigidBody body = new RigidBody(0,shape);
+		body.setTransform(transform);
+		AABB aabb = shape.getBoundingBox(transform);
+		for(CollisionBody b : bodies) {
+			if(GeometryUtils.intersects(b.getBoundingBox(),aabb)) {
+				Manifold m = new Manifold(body,b,transform,b.getTransform());
+				if(CollisionHandler.collide(m,transform,b.getTransform()))bs.add(b);
+			}
+		}
+		return bs;
 	}
 
 	public void stepForward() {
 		if(hasSky())sky.tick(PhysicsEngine.getTimeStep());
-		if(ConfigHandler.getBoolean("debug"))DebugRenderer.clearContacts();
 		states.push(new WorldState(this,PhysicsEngine.tick));
 		applyForces();
 		integrateVelocities();
 		predictTransforms();
 		detectCollisions();
 		createIslands();
+		prestep();
 		solveVelocityConstraints();
 		integratePositions();
 		solvePositionConstraints();
+		sleep();
 	}
 
 	public void stepBackward() {
 		if(ConfigHandler.getBoolean("debug"))DebugRenderer.clearContacts();
 		if(states.size()==0)return;
-		WorldState s = states.pop();
+		WorldState s = states.peek();
+		double d = System.nanoTime()-PhysicsEngine.getTimeStep()*1000000000;
+		while(!states.empty()&&abs(s.getTimeStamp()-d)>abs(states.peek().getTimeStamp()-d)) {
+			states.pop();
+			s=states.peek();
+		}
+		double f = PhysicsEngine.getTimeStep()/s.getTimeStep();
+		if(Math.random()>f*Globals.REWIND_SPEED) {
+			return;
+		}
+		s=states.pop();
 		for(RigidBody b : rigidBodies) {
 			State state = s.get(b);
 			if(state!=null)state.load(b);
+			b.setSleeping(false);
+		}
+		joints = new ArrayList<Joint>(s.joints);
+		forces = new ArrayList<Force>(s.forces);
+		for(Joint j : joints) {
+			j.resetImpulse();
 		}
 		if(hasSky())s.loadSky(sky);
 	}
@@ -254,13 +376,13 @@ public class World implements Serializable{
 
 	void applyGravity() {
 		for(RigidBody b : rigidBodies) {
-			b.applyGravity();
+			b.applyCentralForce(getGravity(b));
 		}
 	}
-
+	
 	void integrateVelocities() {
 		for(RigidBody b : rigidBodies) {
-			b.integrateVelocity();
+			if(!b.isSleeping()||!b.canSleep())b.integrateVelocity();
 		}
 	}
 
@@ -272,6 +394,7 @@ public class World implements Serializable{
 	}
 
 	void createIslands() {
+		ArrayList<Island> oldIslands = new ArrayList<Island>(islands);
 		islands.clear();
 		if(bodies.size()==0||(manifolds.size()==0&&joints.size()==0))return;
 		for(RigidBody b : rigidBodies) {
@@ -285,7 +408,7 @@ public class World implements Serializable{
 		}
 		RigidBody[] bodiesToVisit = new RigidBody[rigidBodies.size()];
 		for(RigidBody b : rigidBodies) {
-			if(b.isInIsland()||b.isSleeping()||b.isStatic())continue;
+			if(b.isInIsland()||b.isStatic())continue;
 			int n = 0;
 			bodiesToVisit[n++]=b;
 			b.setInIsland(true);
@@ -323,24 +446,42 @@ public class World implements Serializable{
 				if(body.isStatic())body.setInIsland(false);
 			}
 		}
+		for(Island i : islands) {
+			for(Island old : oldIslands) {
+				if(i.equals(old)) {
+					i.setSleepTimer(old.getSleepTimer());
+					break;
+				}
+			}
+		}
 	}
 
+	void sleep() {
+		for(Island i : islands) {
+			i.sleep();
+		}
+	}
+	
 	void integratePositions() {
 		for(RigidBody b : rigidBodies) {
-			b.integratePosition();
+			if(!b.isSleeping()||!b.canSleep())b.integratePosition();
 		}
 	}
 
 	void detectCollisions() {
 		broadPhase();
 		narrowPhase();
+		Profiler.print();
 	}
 
 	void broadPhase() {
-		Tree tree = new Tree();
+		Tree<CollisionBody> tree = new Tree<CollisionBody>();
 		ArrayList<CollisionBody> bodies = new ArrayList<CollisionBody>(this.bodies);
-		for(Terrain t : heightField) {
-			bodies.add(t.getMesh());
+		if(terrain!=null) {
+			for(ChunkNode t : terrain.getAll()) {
+				if(t.getMesh()!=null)bodies.add(t.getMesh());
+				if(t.hasSeam()&&t.getSeamMesh()!=null)bodies.add(t.getSeamMesh());
+			}
 		}
 		for(CollisionBody b : bodies) {
 			tree.add(getPredictedBoundingBox(b),b);
@@ -349,9 +490,10 @@ public class World implements Serializable{
 		ArrayList<CollisionBody> checked = new ArrayList<CollisionBody>();
 		ArrayList<Manifold> possibleCollisions = new ArrayList<Manifold>(manifolds);
 		for(CollisionBody b : bodies) {
+			if(b.isStatic()||(b instanceof RigidBody&&((RigidBody)b).isSleeping()))continue;
 			checked.add(b);
-			for(Object o : b.isInfinite()?tree.getAll():tree.query(getPredictedBoundingBox(b))) {
-				if(!(o instanceof CollisionBody&&!checked.contains(o))||(b.isStatic()&&((CollisionBody)o).isStatic()))continue;
+			for(CollisionBody o : b.isInfinite()?tree.getAll():tree.query(getPredictedBoundingBox(b))) {
+				if(checked.contains(o))continue;
 				boolean f = false;
 				for(Manifold m : possibleCollisions) {
 					if((m.body1==b&&m.body2==o)||(m.body2==b&&m.body1==o)) {
@@ -362,7 +504,7 @@ public class World implements Serializable{
 					}
 				}
 				if(f)continue;
-				manifolds.add(new Manifold(b,(CollisionBody)o,getPredictedTransform(b),getPredictedTransform((CollisionBody)o)));
+				manifolds.add(new Manifold(b,o,getPredictedTransform(b),getPredictedTransform(o)));
 			}
 		}
 	}
@@ -387,15 +529,21 @@ public class World implements Serializable{
 		}
 	}
 
+	void prestep() {
+		for(Island i : islands) {
+			if(!i.isSleeping())i.prestep();
+		}
+	}
+	
 	void solveVelocityConstraints() {
 		for(Island i : islands) {
-			i.solveVelocityConstraints();
+			if(!i.isSleeping())i.solveVelocityConstraints();
 		}
 	}
 
 	void solvePositionConstraints() {
 		for(Island i : islands) {
-			i.solvePositionConstraints();
+			if(!i.isSleeping())i.solvePositionConstraints();
 		}
 	}
 }
